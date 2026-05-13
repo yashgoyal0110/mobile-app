@@ -2,7 +2,7 @@
 TirthRide Backend — FastAPI + MongoDB
 E-rickshaw booking & management for Govardhan, Mathura.
 """
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Header, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -146,11 +146,23 @@ class WithdrawReq(BaseModel):
     amount: float
 
 # ----------------- Auth Deps -----------------
-async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer)) -> dict:
-    if not creds:
+async def get_current_user(
+    request: Request,
+    creds: HTTPAuthorizationCredentials = Depends(bearer),
+) -> dict:
+    # Accept token from either standard Authorization header OR custom X-Auth-Token
+    # header. The custom header is needed because some ingresses 307-redirect
+    # cross-origin and browsers strip the Authorization header on cross-origin
+    # redirects (per fetch spec).
+    token = None
+    if creds and creds.credentials:
+        token = creds.credentials
+    if not token:
+        token = request.headers.get("x-auth-token") or request.headers.get("X-Auth-Token")
+    if not token:
         raise HTTPException(401, "Missing token")
     try:
-        payload = jwt.decode(creds.credentials, JWT_SECRET, algorithms=[JWT_ALG])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
     except JWTError:
         raise HTTPException(401, "Invalid token")
     user = await db.users.find_one({"id": payload["sub"]})

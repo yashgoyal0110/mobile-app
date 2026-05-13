@@ -21,7 +21,13 @@ export async function api<T = any>(
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (auth) {
     const t = await getToken();
-    if (t) headers.Authorization = `Bearer ${t}`;
+    if (t) {
+      // Custom header survives cross-origin 307 redirects (Authorization
+      // would be stripped by the browser per fetch spec). Backend accepts
+      // both. Also send Authorization for direct (non-redirect) flows.
+      headers["X-Auth-Token"] = t;
+      headers.Authorization = `Bearer ${t}`;
+    }
   }
   const url = `${BASE}${path}`;
   const res = await fetch(url, {
