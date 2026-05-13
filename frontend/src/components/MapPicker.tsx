@@ -108,6 +108,8 @@ function buildHtml(center: { lat: number; lng: number }, bbox: { south: number; 
       if(msg.type==='setMode'){ currentMode = msg.mode; send({type:'modeChanged',mode:currentMode}); }
       else if(msg.type==='setPickup'){ setPickup({lat:msg.lat,lng:msg.lng}); }
       else if(msg.type==='setDrop'){ setDrop({lat:msg.lat,lng:msg.lng}); }
+      else if(msg.type==='clearPickup'){ if(pickupMarker){ map.removeLayer(pickupMarker); pickupMarker=null; } }
+      else if(msg.type==='clearDrop'){ if(dropMarker){ map.removeLayer(dropMarker); dropMarker=null; } }
       else if(msg.type==='fly'){ map.flyTo([msg.lat,msg.lng], msg.zoom||16); }
       else if(msg.type==='polyline'){
         if(routeLine){ map.removeLayer(routeLine); routeLine=null; }
@@ -118,6 +120,13 @@ function buildHtml(center: { lat: number; lng: number }, bbox: { south: number; 
       }
     } catch(e){ send({type:'err',msg:String(e)}); }
   };
+  // Web iframe: parent posts via window.postMessage
+  window.addEventListener('message', function(e){
+    try {
+      var d = e.data;
+      if (typeof d === 'string') window.handleHostMsg(d);
+    } catch(err){}
+  });
   send({type:'ready'});
 </script>
 </body></html>`;

@@ -173,8 +173,23 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Cross-platform via WebView (iOS/Android) + iframe (web). Tap to pin, drag to refine, search bar, 'use my current location'. Auto reverse-geocode. Polyline rendered when route fetched. Verified rendering in web preview screenshot."
+      - working: "NA"
+        agent: "main"
+        comment: "BUGFIX: iframe (web preview) was missing window.addEventListener('message') in Leaflet HTML, so setMode/setPickup/setDrop calls from RN never reached the iframe map. Added the listener — drop pin selection now works in web preview."
 
-  - task: "Service screen with real road distance"
+  - task: "Search-first LocationSearchSheet (Ola/Uber UX)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/LocationSearchSheet.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "New full-screen sheet for pickup/drop selection. Search-first with 350ms debounced live autocomplete via Nominatim. Shows saved landmarks + filters as user types. 'Use current location' via expo-location. 'Pick on map' opens MapPicker for tap-to-pin. Verified UI rendering with screenshots."
+
+  - task: "Service screen with new search UX + 24h schedule"
     implemented: true
     working: "NA"
     file: "/app/frontend/app/(passenger)/service.tsx"
@@ -184,7 +199,7 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Replaced fixed landmark modal with embedded MapPicker. Distance/duration now from OSRM. Fare recomputed on route fetch."
+        comment: "Refactored to use LocationSearchSheet for both pickup AND drop. Inline route preview map only shown after both selected, with OSRM road polyline. SchedulePicker supports up to 24 hours ahead with Today/Tomorrow chips, +/-30m/+1h/+3h/+6h buttons, and native datetime input on web."
 
   - task: "First-time signup name screen"
     implemented: true

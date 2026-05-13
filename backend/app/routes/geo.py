@@ -35,14 +35,21 @@ async def get_region():
 
 
 @router.get("/search")
-async def search(q: str = Query(..., min_length=1), limit: int = 8):
-    """Free-text place search restricted to region bbox."""
+async def search(q: str = Query(..., min_length=1), limit: int = 8, bounded: int = 0):
+    """Free-text place search. Default unbounded with viewbox bias toward Govardhan.
+
+    Pass `bounded=1` to restrict strictly to the configured region bbox.
+    """
     if GEO_PROVIDER == "osm":
         viewbox = f"{REGION_BBOX['west']},{REGION_BBOX['north']},{REGION_BBOX['east']},{REGION_BBOX['south']}"
         params = {
-            "q": q, "format": "json", "limit": str(limit),
-            "viewbox": viewbox, "bounded": "1",
+            "q": q,
+            "format": "json",
+            "limit": str(limit),
+            "viewbox": viewbox,
+            "bounded": "1" if bounded else "0",
             "countrycodes": "in",
+            "addressdetails": "1",
         }
         try:
             async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": USER_AGENT}) as cli:
@@ -59,10 +66,18 @@ async def search(q: str = Query(..., min_length=1), limit: int = 8):
                 lng = float(item["lon"])
             except Exception:
                 continue
+            # Build a short, friendly display name
+            addr = item.get("address", {}) or {}
+            short = (
+                addr.get("neighbourhood") or addr.get("suburb") or addr.get("village")
+                or addr.get("town") or addr.get("hamlet") or addr.get("city")
+                or item.get("display_name", "").split(",")[0]
+            )
             results.append({
-                "name": item.get("display_name", "").split(",")[0],
+                "name": short,
                 "address": item.get("display_name", ""),
-                "lat": lat, "lng": lng,
+                "lat": lat,
+                "lng": lng,
             })
         return {"results": results}
     raise HTTPException(501, f"Provider {GEO_PROVIDER} not implemented")
