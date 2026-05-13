@@ -8,6 +8,7 @@ import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { StatusPill } from "../../src/components/StatusPill";
 import MapPicker from "../../src/components/MapPicker";
+import RateRideModal from "../../src/components/RateRideModal";
 import { api } from "../../src/api";
 import { useRealtimeEvent } from "../../src/realtime";
 import { colors, radius, spacing, shadows } from "../../src/theme";
@@ -29,6 +30,8 @@ export default function BookingScreen() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
+  const [rated, setRated] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -36,10 +39,14 @@ export default function BookingScreen() {
       const r = await api<any>(`/rides/${id}`);
       setRide(r);
       if (r.driver_location) setDriverLoc(r.driver_location);
+      // Auto-open rating modal once ride is completed (only once)
+      if (r.status === "completed" && r.driver_id && !rated) {
+        setRateOpen(true);
+      }
     } catch (e: any) {
       Alert.alert("Could not load", e.message);
     }
-  }, [id]);
+  }, [id, rated]);
 
   useEffect(() => {
     load();
@@ -272,6 +279,15 @@ export default function BookingScreen() {
           </View>
         </View>
       </Modal>
+
+      <RateRideModal
+        visible={rateOpen}
+        rideId={String(id || "")}
+        targetName={ride.driver_name}
+        targetRole="driver"
+        onClose={() => { setRateOpen(false); setRated(true); }}
+        onSubmitted={() => setRated(true)}
+      />
     </SafeAreaView>
   );
 }

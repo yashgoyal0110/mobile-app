@@ -222,16 +222,43 @@ backend:
         comment: "POST /api/users/push-token with ExponentPushToken[...] returns {ok:true} and stores expo_push_token on user doc. Non-Expo-formatted tokens (e.g. 'abc') are accepted/stored without crashing and the push send path filters them out gracefully (no HTTP call to exp.host). MOCKED in the sense that the test does not assert that Expo Push API actually delivered — only that the token is filtered/skipped properly client-side at send time."
 
   - task: "Admin can update dispatch_radius_km via PATCH /admin/config/fare"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "/app/backend/app/routes/admin.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "testing"
-        comment: "BUG: PATCH /api/admin/config/fare {dispatch_radius_km: 10} returns 200 but the value is silently dropped — `dispatch_radius_km` is missing from ALLOWED_CFG_FIELDS in /app/backend/app/routes/admin.py (lines 15-20). After PATCH, GET /config/fare still shows dispatch_radius_km=5.0. Fix: add 'dispatch_radius_km' to the ALLOWED_CFG_FIELDS set. The field IS present in FareConfig model and IS used by ride dispatch logic — it just can't be changed at runtime by the admin. This blocks the Phase 2 spec requirement of admin tuning the dispatch radius."
+        comment: "BUG: PATCH /api/admin/config/fare {dispatch_radius_km: 10} returns 200 but the value is silently dropped — `dispatch_radius_km` is missing from ALLOWED_CFG_FIELDS."
+      - working: true
+        agent: "main"
+        comment: "Fixed: added dispatch_radius_km to ALLOWED_CFG_FIELDS. Verified PATCH 5→8.5 reflected in subsequent GET. Reset to 5 default after test."
+
+  - task: "Ratings & complaints (Phase 3)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routes/ratings.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/rides/{id}/rate (1-5 stars + comment, idempotent — re-rating updates the row), GET /api/rides/{id}/ratings, POST /api/rides/{id}/complaint (9 categories), GET /api/users/{id}/rating, GET /api/admin/complaints (filterable by status), PATCH /api/admin/complaints/{id} resolve/reject. Aggregate rating auto-recomputed on user + driver doc."
+
+  - task: "Admin reports — timeseries, leaderboard, top routes (Phase 3)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routes/admin.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/admin/reports/timeseries?days=N → per-day rides + revenue + cancellation. GET /api/admin/reports/leaderboard → top drivers by earnings (joined with user + driver doc, includes avg_rating). GET /api/admin/reports/top-routes → most popular pickup→drop pairs (local rides). open_complaints added to /api/admin/dashboard."
 
 frontend:
   - task: "Map-based location picker (Leaflet + OSM)"

@@ -7,6 +7,7 @@ import { TText } from "../../src/components/TText";
 import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { StatusPill } from "../../src/components/StatusPill";
+import RateRideModal from "../../src/components/RateRideModal";
 import { api } from "../../src/api";
 import { colors, radius, spacing } from "../../src/theme";
 
@@ -20,16 +21,21 @@ export default function DriverRide() {
   const [submitting, setSubmitting] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [rateOpen, setRateOpen] = useState(false);
+  const [rated, setRated] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     try {
       const r = await api<any>(`/rides/${id}`);
       setRide(r);
+      if (r.status === "completed" && r.passenger_id && !rated) {
+        setRateOpen(true);
+      }
     } catch (e: any) {
       Alert.alert("Could not load", e.message);
     }
-  }, [id]);
+  }, [id, rated]);
 
   useEffect(() => {
     load();
@@ -233,6 +239,15 @@ export default function DriverRide() {
           </View>
         </View>
       </Modal>
+
+      <RateRideModal
+        visible={rateOpen}
+        rideId={String(id || "")}
+        targetName={ride.passenger_name}
+        targetRole="passenger"
+        onClose={() => { setRateOpen(false); setRated(true); }}
+        onSubmitted={() => setRated(true)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,6 +1,6 @@
 """Admin routes (dashboard, fares, drivers, audit, landmarks)."""
 from typing import Dict, Any, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Depends
 
 from ..db import db
@@ -134,6 +134,7 @@ async def admin_dashboard(_: dict = Depends(require_role("admin"))):
     rides_today = await db.rides.count_documents({"created_at": {"$gte": today_start}})
     active_drivers = await db.drivers.count_documents({"online": True, "kyc_status": "approved"})
     pending_approvals = await db.drivers.count_documents({"kyc_status": "pending"})
+    open_complaints = await db.complaints.count_documents({"status": "open"})
     completed = await db.rides.find({"status": "completed"}).to_list(10000)
     revenue = sum(r.get("commission", 0) for r in completed)
     total_fare = sum(r.get("fare", 0) for r in completed)
@@ -142,9 +143,112 @@ async def admin_dashboard(_: dict = Depends(require_role("admin"))):
         "rides_today": rides_today,
         "active_drivers": active_drivers,
         "pending_approvals": pending_approvals,
+        "open_complaints": open_complaints,
         "platform_revenue": round(revenue, 2),
         "total_fare_processed": round(total_fare, 2),
     }
+
+
+# ---------- Reports / charts ----------
+@router.get("/reports/timeseries")
+async def report_timeseries(days: int = 7, _: dict = Depends(require_role("admin"))):
+    """Return per-day rides + revenue for last `days` days (UTC)."""
+    days = max(1, min(days, 60))
+    today = datetime.combine(now().date(), datetime.min.time(), tzinfo=timezone.utc)
+    start = today - timedelta(days=days - 1)
+    pipeline = [
+        {"$match": {"created_at": {"$gte": start}}},
+        {
+            "$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
+                "rides": {"$sum": 1},
+                "revenue": {
+                    "$sum": {"$cond": [{"$eq": ["$status", "completed"]}, "$commission", 0]}
+                },
+                "fare": {
+                    "$sum": {"$cond": [{"$eq": ["$status", "completed"]}, "$fare", 0]}
+                },
+                "completed": {"$sum": {"$cond": [{"$eq": ["$status", "completed"]}, 1, 0]}},
+                "cancelled": {"$sum": {"$cond": [{"$eq": ["$status", "cancelled"]}, 1, 0]}},
+            }
+        },
+    ]
+    raw = {row["_id"]: row async for row in db.rides.aggregate(pipeline)}
+    out = []
+    for i in range(days):
+        d = (start + timedelta(days=i)).strftime("%Y-%m-%d")
+        row = raw.get(d, {})
+        out.append({
+            "date": d,
+            "rides": row.get("rides", 0),
+            "completed": row.get("completed", 0),
+            "cancelled": row.get("cancelled", 0),
+            "revenue": round(row.get("revenue", 0) or 0, 2),
+            "fare": round(row.get("fare", 0) or 0, 2),
+        })
+    return {"series": out}
+
+
+@router.get("/reports/leaderboard")
+async def report_leaderboard(_: dict = Depends(require_role("admin")), limit: int = 10):
+    pipeline = [
+        {"$match": {"status": "completed"}},
+        {
+            "$group": {
+                "_id": "$driver_id",
+                "trips": {"$sum": 1},
+                "earnings": {"$sum": "$driver_earning"},
+                "fare": {"$sum": "$fare"},
+            }
+        },
+        {"$sort": {"earnings": -1}},
+        {"$limit": limit},
+    ]
+    rows = []
+    async for r in db.rides.aggregate(pipeline):
+        driver_id = r["_id"]
+        if not driver_id:
+            continue
+        u = await db.users.find_one({"id": driver_id})
+        d = await db.drivers.find_one({"user_id": driver_id})
+        rows.append({
+            "driver_id": driver_id,
+            "name": (u or {}).get("name"),
+            "phone": (u or {}).get("phone"),
+            "vehicle_no": (d or {}).get("vehicle_no"),
+            "avg_rating": (d or {}).get("avg_rating"),
+            "total_ratings": (d or {}).get("total_ratings", 0),
+            "trips": r["trips"],
+            "earnings": round(r["earnings"], 2),
+            "fare": round(r["fare"], 2),
+        })
+    return {"leaderboard": rows}
+
+
+@router.get("/reports/top-routes")
+async def report_top_routes(_: dict = Depends(require_role("admin")), limit: int = 10):
+    pipeline = [
+        {"$match": {"status": "completed", "type": "local"}},
+        {
+            "$group": {
+                "_id": {"pickup": "$pickup.name", "drop": "$drop.name"},
+                "count": {"$sum": 1},
+                "fare": {"$sum": "$fare"},
+            }
+        },
+        {"$sort": {"count": -1}},
+        {"$limit": limit},
+    ]
+    out = []
+    async for r in db.rides.aggregate(pipeline):
+        pid = r["_id"]
+        out.append({
+            "pickup": pid.get("pickup") or "Unknown",
+            "drop": pid.get("drop") or "Unknown",
+            "count": r["count"],
+            "fare": round(r["fare"], 2),
+        })
+    return {"routes": out}
 
 
 # ---------- Withdrawals ----------

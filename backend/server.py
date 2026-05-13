@@ -20,6 +20,7 @@ from app.routes import (
     admin as admin_routes,
     geo as geo_routes,
     ws as ws_routes,
+    ratings as ratings_routes,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -38,6 +39,8 @@ api.include_router(suggestions_routes.router)
 api.include_router(admin_routes.router)
 api.include_router(geo_routes.router)
 api.include_router(ws_routes.router)
+api.include_router(ratings_routes.router)
+api.include_router(ratings_routes.admin_router)
 
 
 @api.get("/")

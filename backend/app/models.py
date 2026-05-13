@@ -99,3 +99,22 @@ class LandmarkUpdateReq(BaseModel):
     name: Optional[str] = None
     lat: Optional[float] = None
     lng: Optional[float] = None
+
+
+class RateRideReq(BaseModel):
+    stars: int  # 1..5
+    comment: Optional[str] = None
+
+
+class ComplaintReq(BaseModel):
+    category: Literal[
+        "rash_driving", "rude_behaviour", "overcharge", "vehicle_unsafe",
+        "no_show", "wrong_route", "payment_issue", "lost_item", "other",
+    ]
+    description: str
+    against: Optional[Literal["driver", "passenger"]] = None  # admin can leave blank
+
+
+class ResolveComplaintReq(BaseModel):
+    resolution: str
+    status: Literal["resolved", "rejected"] = "resolved"
