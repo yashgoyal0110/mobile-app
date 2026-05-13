@@ -115,51 +115,123 @@ user_problem_statement: |
 backend:
   - task: "Modular backend refactor (auth, users, config, drivers, rides, suggestions, admin, geo)"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py and /app/backend/app/routes/*"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Split 684-line server.py into modular routers under app/routes/. server.py is now 64-line entry point. All existing routes preserved with same paths."
+      - working: true
+        agent: "testing"
+        comment: "All routes mounted, existing flows pass regression. server.py thin entry (64 lines) imports modular routers."
 
   - task: "Geo proxy endpoints (/api/geo/search, /reverse, /route, /region)"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routes/geo.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Added Nominatim (search/reverse) + OSRM (routing) proxy. Bounded to Govardhan bbox. Provider swappable via GEO_PROVIDER env var. Verified locally: route returns real road distance with polyline."
+      - working: true
+        agent: "testing"
+        comment: "Nominatim search returns >=1 results for 'radha kund' and 'deeg'. OSRM route returns real polyline + distance >5km + source 'osrm'. Reverse geocode returns expected fields."
 
   - task: "First-time signup with name collection"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routes/auth.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "verify-otp now returns {requires_name: true} if user is new (or legacy without name) and no name in payload. Frontend collects name and re-submits."
+      - working: true
+        agent: "testing"
+        comment: "Verify-otp without name returns requires_name:true; OTP not consumed; resubmit with name returns access_token. Role conflict 403. Admin verifies without name (seeded)."
 
   - task: "Admin landmarks CRUD"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routes/admin.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "GET/POST/PATCH/DELETE all working. Initial 10 seeded landmarks. Adds/updates/removes correctly reflected."
+
+  - task: "WebSocket realtime dispatch (Phase 2)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/ws.py and /app/backend/app/realtime.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Added GET /admin/landmarks, POST, PATCH, DELETE for landmark management within fare config."
+        comment: "Added WS endpoint /api/ws?token=<jwt> with JWT auth via query param. ConnectionManager broadcasts ride_requested to eligible drivers on POST /rides. Drivers receive ride_taken when another driver accepts. Passenger receives ride_accepted, ride_started, ride_completed, ride_cancelled. Drivers also push live `location` messages over WS which are forwarded to the assigned passenger as driver_location events."
+      - working: true
+        agent: "testing"
+        comment: "All WS flows pass via ws://localhost:8001/api/ws?token=<jwt>. Invalid token rejected. Valid passenger gets {type:hello, role:passenger, user_id}. ping→pong works. ride_requested broadcast to both online+approved drivers (no-location fallback). ride_taken delivered to other drivers on accept. ride_accepted delivered to passenger w/ driver info. ride_started, ride_completed (with fare), ride_cancelled (by=passenger, reason) all delivered end-to-end. NOTE: WS through the preview HTTPS ingress fails with 307→https redirect (websockets lib then rejects the https scheme). Using ws://localhost:8001 works fine. Main agent may want to check ingress WebSocket support if external clients (mobile) need to connect through preview URL — but EXPO_PUBLIC_BACKEND_URL is mapped, so wss:// should also work in production ingress. Recommend verifying ingress nginx has `proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection \"upgrade\"`."
+
+  - task: "Targeted dispatch with radius filter (Phase 2)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/rides.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Ride creation now queries online+approved drivers, filters by haversine distance against pickup against admin-configurable dispatch_radius_km (default 5km). Drivers without known location fall through to broadcast (graceful fallback). Sorted by distance ascending."
+      - working: true
+        agent: "testing"
+        comment: "Driver A at (27.498,77.461) within 5km of Govardhan pickup got ride_requested; Driver B at (28.0,78.0) ~100km away did NOT. Ride still persisted with status=requested, driver_id=null. Graceful fallback also verified — drivers without current_lat/lng get broadcast normally."
+
+  - task: "Driver location tracking (Phase 2)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/drivers.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added POST /api/drivers/location (REST fallback) and WS message {type:'location', lat, lng}. Stored on driver doc. Forwarded to active passenger on WS as driver_location event."
+      - working: true
+        agent: "testing"
+        comment: "POST /api/drivers/location returns {ok:true} and persists current_lat/lng. GET /rides/{id} as passenger after accept returns driver_location:{lat,lng}. WS {type:'location'} from driver is forwarded to the assigned passenger as {type:'driver_location', ride_id, lat, lng} with the exact values."
+
+  - task: "Expo push notifications (Phase 2)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/realtime.py and /app/backend/app/routes/users.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/users/push-token registers Expo push token on user doc. Backend invokes Expo Push API (https://exp.host/--/api/v2/push/send) for ride lifecycle events to user(s) whose app is backgrounded. Tokens must start with ExponentPushToken to be sent."
+      - working: true
+        agent: "testing"
+        comment: "POST /api/users/push-token with ExponentPushToken[...] returns {ok:true} and stores expo_push_token on user doc. Non-Expo-formatted tokens (e.g. 'abc') are accepted/stored without crashing and the push send path filters them out gracefully (no HTTP call to exp.host). MOCKED in the sense that the test does not assert that Expo Push API actually delivered — only that the token is filtered/skipped properly client-side at send time."
+
+  - task: "Admin can update dispatch_radius_km via PATCH /admin/config/fare"
+    implemented: false
+    working: false
+    file: "/app/backend/app/routes/admin.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "BUG: PATCH /api/admin/config/fare {dispatch_radius_km: 10} returns 200 but the value is silently dropped — `dispatch_radius_km` is missing from ALLOWED_CFG_FIELDS in /app/backend/app/routes/admin.py (lines 15-20). After PATCH, GET /config/fare still shows dispatch_radius_km=5.0. Fix: add 'dispatch_radius_km' to the ALLOWED_CFG_FIELDS set. The field IS present in FareConfig model and IS used by ride dispatch logic — it just can't be changed at runtime by the admin. This blocks the Phase 2 spec requirement of admin tuning the dispatch radius."
 
 frontend:
   - task: "Map-based location picker (Leaflet + OSM)"
@@ -245,12 +317,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Modular backend refactor (auth, users, config, drivers, rides, suggestions, admin, geo)"
-    - "Geo proxy endpoints (/api/geo/search, /reverse, /route, /region)"
-    - "First-time signup with name collection"
-    - "Admin landmarks CRUD"
+    - "Admin can update dispatch_radius_km via PATCH /admin/config/fare"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
@@ -273,3 +342,24 @@ agent_communication:
       5. /api/admin/landmarks CRUD as admin
       
       Test credentials in /app/memory/test_credentials.md.
+
+  - agent: "testing"
+    message: |
+      Phase 2 backend validation complete. 36/37 checks PASS. See /app/backend_test_phase2.py.
+      
+      ✅ WebSocket auth (invalid/valid) + hello + ping/pong
+      ✅ Realtime ride dispatch — both online drivers (no current_lat/lng) got `ride_requested`; A accepts → B gets `ride_taken`, passenger gets `ride_accepted` w/ driver info
+      ✅ Targeted dispatch — Driver A (in 5km) got event, Driver B (~100km away) did NOT; ride still created status=requested,driver_id=null
+      ✅ Driver location — POST /drivers/location persists lat/lng; GET /rides/{id} (passenger) returns driver_location; WS {type:'location'} from driver → passenger gets {type:'driver_location', ride_id, lat, lng}
+      ✅ Push token — POST /users/push-token stores token; non-Expo tokens accepted gracefully and skipped at send time (no exp.host call) [Expo Push delivery itself is MOCKED — only verified storage + filter logic]
+      ✅ Ride lifecycle WS — ride_started, ride_completed (with fare), ride_cancelled (by=passenger, reason) all delivered
+      ✅ Config — GET /config/fare returns both `dispatch_radius_km` (5.0) and `surge_pct` (0.0)
+      ✅ Phase 1 regression — /, /geo/*, /admin/landmarks all green
+      
+      ❌ ONE BUG FOUND (high priority):
+      PATCH /api/admin/config/fare {"dispatch_radius_km": 10} returns 200 but the value is silently dropped. Root cause: `dispatch_radius_km` is missing from `ALLOWED_CFG_FIELDS` in /app/backend/app/routes/admin.py (line 15-20). After PATCH, GET /config/fare still shows 5.0. FIX: add 'dispatch_radius_km' to the set — one-line change. This blocks Phase 2 spec requirement of admin tuning dispatch radius at runtime.
+      
+      NOTE on WebSocket via preview URL:
+      The preview HTTPS ingress responds to the WebSocket upgrade with HTTP 307 redirecting to https://...internal.preview.emergentagent.com which the `websockets` client rejects (not a ws:// scheme). REST works fine on the preview URL. WS works fine on ws://localhost:8001/api/ws. Mobile clients using EXPO_PUBLIC_BACKEND_URL → wss should ideally also work if the production ingress has `proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade"`. Main agent: please verify ingress nginx config has WS upgrade support so mobile/web clients can reach WS through preview URL.
+      
+      Detailed test code: /app/backend_test_phase2.py (also /app/backend_test.py for Phase 1 regression).

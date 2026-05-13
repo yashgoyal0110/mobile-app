@@ -7,7 +7,9 @@ import { TText } from "../../src/components/TText";
 import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { StatusPill } from "../../src/components/StatusPill";
+import MapPicker from "../../src/components/MapPicker";
 import { api } from "../../src/api";
+import { useRealtimeEvent } from "../../src/realtime";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 
 const STEPS = ["requested", "accepted", "started", "completed"];
@@ -23,6 +25,7 @@ export default function BookingScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [ride, setRide] = useState<any>(null);
+  const [driverLoc, setDriverLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -32,6 +35,7 @@ export default function BookingScreen() {
     try {
       const r = await api<any>(`/rides/${id}`);
       setRide(r);
+      if (r.driver_location) setDriverLoc(r.driver_location);
     } catch (e: any) {
       Alert.alert("Could not load", e.message);
     }
@@ -39,9 +43,31 @@ export default function BookingScreen() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 3500);
+    // Slow polling as a safety net (WS handles real-time)
+    const t = setInterval(load, 12000);
     return () => clearInterval(t);
   }, [load]);
+
+  // Realtime: instant status changes via WS
+  useRealtimeEvent("ride_accepted", (ev) => {
+    if (ev.ride?.id === id) {
+      setRide(ev.ride);
+    }
+  });
+  useRealtimeEvent("ride_started", (ev) => {
+    if (ev.ride_id === id) load();
+  });
+  useRealtimeEvent("ride_completed", (ev) => {
+    if (ev.ride_id === id) load();
+  });
+  useRealtimeEvent("ride_cancelled", (ev) => {
+    if (ev.ride_id === id) load();
+  });
+  useRealtimeEvent("driver_location", (ev) => {
+    if (ev.ride_id === id) {
+      setDriverLoc({ lat: ev.lat, lng: ev.lng });
+    }
+  });
 
   const doCancel = async () => {
     if (!reason) {
@@ -136,6 +162,25 @@ export default function BookingScreen() {
                   <Feather name="phone" size={11} color={colors.success} /> {ride.driver_phone}
                 </TText>
               </View>
+            </View>
+          </Card>
+        )}
+
+        {/* Live driver location map */}
+        {ride.driver_id && ride.pickup && driverLoc && ["accepted", "started"].includes(ride.status) && (
+          <Card style={{ padding: 0, overflow: "hidden", marginBottom: spacing.md }}>
+            <MapPicker
+              pickup={{ ...ride.pickup, name: "Pickup" }}
+              drop={{ lat: driverLoc.lat, lng: driverLoc.lng, name: "Driver" }}
+              mode="pickup"
+              onChange={() => {}}
+              height={200}
+            />
+            <View style={styles.mapBar}>
+              <Feather name="navigation" size={14} color={colors.primaryDark} />
+              <TText variant="bodySm" weight="700" color={colors.primaryDark} style={{ marginLeft: 6 }}>
+                Driver is on the way (live)
+              </TText>
             </View>
           </Card>
         )}
@@ -271,6 +316,13 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.primary,
   },
   driverAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primaryLight, alignItems: "center", justifyContent: "center" },
+  mapBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+  },
   tlDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 3 },
   tlLine: { flex: 1, width: 2, minHeight: 22 },
   row: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },

@@ -1,10 +1,11 @@
-"""Ride routes."""
+"""Ride routes with realtime dispatch + push notifications."""
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
 
 from ..db import db
 from ..deps import get_current_user, require_role
 from ..models import CreateRideReq, CancelReq, VerifyPinReq
+from ..realtime import manager, haversine_km, push_expo
 from ..utils import now, new_id, iso, clean, gen_pin
 
 router = APIRouter(prefix="/rides", tags=["rides"])
@@ -22,9 +23,41 @@ def calc_fare(ride_type: str, distance_km: float | None, cfg: dict) -> float:
     raise HTTPException(400, "Unknown ride type")
 
 
+async def _eligible_drivers_for_ride(ride: dict, cfg: dict) -> list[dict]:
+    """Return list of online + KYC-approved drivers within dispatch radius.
+
+    If ride has no pickup coords, fall back to all online drivers.
+    """
+    dispatch_radius = float(cfg.get("dispatch_radius_km", 5.0))
+    cur = db.drivers.find({"online": True, "kyc_status": "approved"})
+    out = []
+    pk = ride.get("pickup") or {}
+    pk_lat = pk.get("lat")
+    pk_lng = pk.get("lng")
+    async for d in cur:
+        if pk_lat is None or pk_lng is None or d.get("current_lat") is None or d.get("current_lng") is None:
+            out.append({"user_id": d["user_id"], "distance_km": None})
+            continue
+        dist = haversine_km(pk_lat, pk_lng, d["current_lat"], d["current_lng"])
+        if dist <= dispatch_radius:
+            out.append({"user_id": d["user_id"], "distance_km": dist})
+    # Sort by distance (None last)
+    out.sort(key=lambda x: (x["distance_km"] is None, x["distance_km"] or 0))
+    return out
+
+
+async def _push_users(user_ids: list[str], title: str, body: str, data: dict) -> None:
+    if not user_ids:
+        return
+    docs = await db.users.find({"id": {"$in": user_ids}}).to_list(500)
+    tokens = [d.get("expo_push_token") for d in docs if d.get("expo_push_token")]
+    if tokens:
+        await push_expo(tokens, title, body, data)
+
+
 @router.post("")
 async def create_ride(req: CreateRideReq, user: dict = Depends(require_role("passenger"))):
-    cfg = await db.fare_config.find_one({"id": "default"})
+    cfg = await db.fare_config.find_one({"id": "default"}) or {}
     fare = calc_fare(req.type, req.distance_km, cfg)
     commission = round(fare * cfg["commission_pct"] / 100, 2)
     pin = gen_pin()
@@ -66,6 +99,18 @@ async def create_ride(req: CreateRideReq, user: dict = Depends(require_role("pas
         "cancelled_by": None,
     }
     await db.rides.insert_one(ride)
+
+    # Live dispatch to eligible drivers if immediate (not scheduled)
+    if not scheduled_at:
+        eligible = await _eligible_drivers_for_ride(ride, cfg)
+        driver_ids = [d["user_id"] for d in eligible]
+        payload = {"type": "ride_requested", "ride": clean(ride)}
+        await manager.broadcast(driver_ids, payload)
+        body_txt = (
+            f"New {req.type} ride • ₹{fare}"
+            + (f" • {round(req.distance_km, 1)} km" if req.distance_km else "")
+        )
+        await _push_users(driver_ids, "New ride request", body_txt, {"ride_id": ride["id"], "type": "ride_requested"})
     return clean(ride)
 
 
@@ -86,6 +131,11 @@ async def get_ride(ride_id: str, user: dict = Depends(get_current_user)):
     out = clean(ride)
     if user["role"] == "driver" and ride.get("status") == "requested":
         out["pin"] = None
+    # Include driver's last known location for passenger view (after accept)
+    if user["role"] == "passenger" and ride.get("driver_id") and ride.get("status") in ("accepted", "started"):
+        drv = await db.drivers.find_one({"user_id": ride["driver_id"]})
+        if drv and drv.get("current_lat") is not None:
+            out["driver_location"] = {"lat": drv["current_lat"], "lng": drv["current_lng"]}
     return out
 
 
@@ -108,7 +158,22 @@ async def accept_ride(ride_id: str, user: dict = Depends(require_role("driver"))
         "audit_log": audit,
     }})
     fresh = await db.rides.find_one({"id": ride_id})
-    return clean(fresh)
+
+    # Notify passenger via WS + push
+    passenger_id = fresh["passenger_id"]
+    out = clean(fresh)
+    await manager.send_to_user(passenger_id, {"type": "ride_accepted", "ride": out})
+    await _push_users(
+        [passenger_id],
+        "Driver assigned 🛺",
+        f"{out.get('driver_name')} is heading your way. PIN: {out.get('pin')}",
+        {"ride_id": ride_id, "type": "ride_accepted"},
+    )
+    # Also notify other drivers that this ride is gone
+    others = [d.get("user_id") async for d in db.drivers.find({"online": True, "kyc_status": "approved"})]
+    others = [u for u in others if u and u != user["id"]]
+    await manager.broadcast(others, {"type": "ride_taken", "ride_id": ride_id})
+    return out
 
 
 @router.post("/{ride_id}/verify-pin")
@@ -124,6 +189,8 @@ async def verify_pin(ride_id: str, req: VerifyPinReq, user: dict = Depends(requi
     await db.rides.update_one({"id": ride_id}, {"$set": {
         "status": "started", "started_at": now(), "audit_log": audit,
     }})
+    await manager.send_to_user(ride["passenger_id"], {"type": "ride_started", "ride_id": ride_id})
+    await _push_users([ride["passenger_id"]], "Ride started 🚦", "Have a safe journey!", {"ride_id": ride_id, "type": "ride_started"})
     return {"ok": True, "status": "started"}
 
 
@@ -139,6 +206,13 @@ async def complete_ride(ride_id: str, user: dict = Depends(require_role("driver"
         "status": "completed", "completed_at": now(), "audit_log": audit,
     }})
     await db.drivers.update_one({"user_id": user["id"]}, {"$inc": {"earnings_total": ride["driver_earning"]}})
+    await manager.send_to_user(ride["passenger_id"], {"type": "ride_completed", "ride_id": ride_id, "fare": ride["fare"]})
+    await _push_users(
+        [ride["passenger_id"]],
+        "Ride completed 🙏",
+        f"Total fare ₹{ride['fare']:.0f}. Thank you for choosing TirthRide!",
+        {"ride_id": ride_id, "type": "ride_completed"},
+    )
     return {"ok": True, "status": "completed"}
 
 
@@ -160,4 +234,16 @@ async def cancel_ride(ride_id: str, req: CancelReq, user: dict = Depends(get_cur
         "cancel_reason": req.reason, "cancelled_by": user["role"],
         "audit_log": audit,
     }})
+    # Notify the other party
+    other_id = ride.get("driver_id") if user["role"] == "passenger" else ride.get("passenger_id")
+    if other_id:
+        await manager.send_to_user(other_id, {
+            "type": "ride_cancelled", "ride_id": ride_id, "by": user["role"], "reason": req.reason
+        })
+        await _push_users(
+            [other_id],
+            "Ride cancelled",
+            f"Cancelled by {user['role']}: {req.reason}",
+            {"ride_id": ride_id, "type": "ride_cancelled"},
+        )
     return {"ok": True}

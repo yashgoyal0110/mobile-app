@@ -20,12 +20,17 @@ GOVARDHAN_LANDMARKS = [
 
 async def ensure_seed():
     cfg = await db.fare_config.find_one({"id": "default"})
+    default_cfg = FareConfig().model_dump()
     if not cfg:
-        default_cfg = FareConfig().model_dump()
         default_cfg["id"] = "default"
         default_cfg["landmarks"] = GOVARDHAN_LANDMARKS
         default_cfg["updated_at"] = now()
         await db.fare_config.insert_one(default_cfg)
+    else:
+        # Backfill any newly-introduced fields without overwriting customised ones
+        missing = {k: v for k, v in default_cfg.items() if k not in cfg}
+        if missing:
+            await db.fare_config.update_one({"id": "default"}, {"$set": missing})
 
     for phone in ADMIN_PHONES:
         phone = phone.strip()

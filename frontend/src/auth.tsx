@@ -25,6 +25,7 @@ export interface Driver {
 interface AuthState {
   user: User | null;
   driver: Driver | null;
+  token: string | null;
   loading: boolean;
   signIn: (token: string, user: User) => Promise<void>;
   signOut: () => Promise<void>;
@@ -36,10 +37,12 @@ const Ctx = createContext<AuthState>({} as any);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
+  const [token, setTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     const t = await getToken();
+    setTokenState(t);
     if (!t) {
       setUser(null);
       setDriver(null);
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setDriver(data.driver || null);
     } catch {
       await setToken(null);
+      setTokenState(null);
       setUser(null);
       setDriver(null);
     }
@@ -62,20 +66,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
-  const signIn = async (token: string, u: User) => {
-    await setToken(token);
+  const signIn = async (t: string, u: User) => {
+    await setToken(t);
+    setTokenState(t);
     setUser(u);
     await refresh();
   };
 
   const signOut = async () => {
     await setToken(null);
+    setTokenState(null);
     setUser(null);
     setDriver(null);
   };
 
   return (
-    <Ctx.Provider value={{ user, driver, loading, signIn, signOut, refresh }}>
+    <Ctx.Provider value={{ user, driver, token, loading, signIn, signOut, refresh }}>
       {children}
     </Ctx.Provider>
   );

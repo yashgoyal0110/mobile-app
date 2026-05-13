@@ -52,6 +52,9 @@ class FareConfig(BaseModel):
     landmarks: List[Dict[str, Any]] = []
     city_center: Dict[str, float] = {"lat": 27.4985, "lng": 77.4615}
     boundary_radius_km: float = 15.0
+    dispatch_radius_km: float = 5.0
+    surge_pct: float = 0.0
+    support_phone: Optional[str] = None
 
 
 class CreateRideReq(BaseModel):

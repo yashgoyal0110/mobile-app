@@ -19,6 +19,8 @@ const FARE_FIELDS = [
   { key: "commission_pct", label: "Admin commission (%)", icon: "percent" as const },
   { key: "cancellation_fee", label: "Cancellation fee (₹)", icon: "x-circle" as const },
   { key: "boundary_radius_km", label: "City boundary (km)", icon: "map" as const },
+  { key: "dispatch_radius_km", label: "Driver dispatch radius (km)", icon: "radio" as const },
+  { key: "surge_pct", label: "Surge multiplier (%)", icon: "zap" as const },
 ];
 
 type Tab = "fares" | "landmarks";

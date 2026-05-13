@@ -3,16 +3,19 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert }
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
+import * as Location from "expo-location";
 import { TText } from "../../src/components/TText";
 import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { api } from "../../src/api";
 import { useAuth } from "../../src/auth";
+import { useRealtime, useRealtimeEvent } from "../../src/realtime";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 
 export default function DriverHome() {
   const router = useRouter();
   const { user, driver, refresh } = useAuth();
+  const { send, isOpen } = useRealtime();
   const [incoming, setIncoming] = useState<any[]>([]);
   const [active, setActive] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,11 +36,54 @@ export default function DriverHome() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // Polling fallback (in case WS hiccups)
   useEffect(() => {
     if (!driver?.online) return;
-    const t = setInterval(load, 4000);
+    const t = setInterval(load, 10000);
     return () => clearInterval(t);
   }, [driver?.online, load]);
+
+  // Realtime: incoming ride pushed in
+  useRealtimeEvent("ride_requested", (ev) => {
+    if (!driver?.online) return;
+    setIncoming((prev) => {
+      if (prev.some((r) => r.id === ev.ride.id)) return prev;
+      return [ev.ride, ...prev];
+    });
+  });
+  useRealtimeEvent("ride_taken", (ev) => {
+    setIncoming((prev) => prev.filter((r) => r.id !== ev.ride_id));
+  });
+
+  // Live driver location streaming while online
+  useEffect(() => {
+    if (!driver?.online) return;
+    let sub: Location.LocationSubscription | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const perm = await Location.requestForegroundPermissionsAsync();
+        if (perm.status !== "granted") return;
+        sub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, distanceInterval: 25, timeInterval: 20000 },
+          (pos) => {
+            if (cancelled) return;
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            if (isOpen()) {
+              send({ type: "location", lat, lng });
+            } else {
+              api("/drivers/location", { method: "POST", body: { lat, lng } }).catch(() => {});
+            }
+          }
+        );
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+      if (sub) sub.remove();
+    };
+  }, [driver?.online, isOpen, send]);
 
   const toggleOnline = async () => {
     if (driver?.kyc_status !== "approved") {

@@ -1,12 +1,22 @@
 """Driver routes."""
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
 
 from ..db import db
 from ..deps import require_role
 from ..models import KycReq, OnlineReq, WithdrawReq
+from ..realtime import manager
 from ..utils import now, new_id, clean
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
+
+
+class LocationReq(BaseModel):
+    lat: float
+    lng: float
+    heading: Optional[float] = None
+    speed: Optional[float] = None
 
 
 @router.post("/kyc")
@@ -31,8 +41,43 @@ async def set_online(req: OnlineReq, user: dict = Depends(require_role("driver")
         raise HTTPException(404, "Driver record missing")
     if req.online and driver.get("kyc_status") != "approved":
         raise HTTPException(403, "Complete KYC and get admin approval to go online")
-    await db.drivers.update_one({"user_id": user["id"]}, {"$set": {"online": req.online, "last_seen_at": now()}})
+    await db.drivers.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"online": req.online, "last_seen_at": now()}}
+    )
+    if req.online:
+        manager.mark_online(user["id"])
+    else:
+        manager.mark_offline(user["id"])
     return {"online": req.online}
+
+
+@router.post("/location")
+async def update_location(req: LocationReq, user: dict = Depends(require_role("driver"))):
+    """REST fallback for location updates when WS isn't available."""
+    await db.drivers.update_one(
+        {"user_id": user["id"]},
+        {"$set": {
+            "current_lat": req.lat,
+            "current_lng": req.lng,
+            "heading": req.heading,
+            "speed": req.speed,
+            "last_seen_at": now(),
+        }}
+    )
+    # Forward to active passenger if any
+    active = await db.rides.find_one({
+        "driver_id": user["id"],
+        "status": {"$in": ["accepted", "started"]}
+    })
+    if active and active.get("passenger_id"):
+        await manager.send_to_user(active["passenger_id"], {
+            "type": "driver_location",
+            "ride_id": active["id"],
+            "lat": req.lat,
+            "lng": req.lng,
+        })
+    return {"ok": True}
 
 
 @router.get("/incoming-rides")
