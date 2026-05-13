@@ -15,8 +15,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 ALLOWED_CFG_FIELDS = {
     "base_fare", "per_km", "poochari_fare", "radhakund_fare", "combined_fare",
     "commission_pct", "cancellation_fee", "boundary_radius_km",
+    "dispatch_radius_km", "surge_pct",
     "landmarks", "city_center", "support_phone", "support_email",
-    "surge_pct", "region_bbox",
+    "region_bbox",
 }
 
 
