@@ -101,3 +101,160 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  TirthRide - e-rickshaw booking app for Govardhan (Mathura). 
+  Phase 1 enhancements requested:
+  1. Real map-based location picker (Ola/Uber style) using free OSM provider, swappable to Google later
+  2. Real road distance using OSRM (not haversine)
+  3. Scrollable login/otp/role-select screens for web preview
+  4. Full-name collection on first signup, direct login if returning user
+  5. Refactor backend to modular routers for scalability
+  6. Admin landmarks CRUD UI
+
+backend:
+  - task: "Modular backend refactor (auth, users, config, drivers, rides, suggestions, admin, geo)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py and /app/backend/app/routes/*"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Split 684-line server.py into modular routers under app/routes/. server.py is now 64-line entry point. All existing routes preserved with same paths."
+
+  - task: "Geo proxy endpoints (/api/geo/search, /reverse, /route, /region)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routes/geo.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added Nominatim (search/reverse) + OSRM (routing) proxy. Bounded to Govardhan bbox. Provider swappable via GEO_PROVIDER env var. Verified locally: route returns real road distance with polyline."
+
+  - task: "First-time signup with name collection"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routes/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "verify-otp now returns {requires_name: true} if user is new (or legacy without name) and no name in payload. Frontend collects name and re-submits."
+
+  - task: "Admin landmarks CRUD"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routes/admin.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /admin/landmarks, POST, PATCH, DELETE for landmark management within fare config."
+
+frontend:
+  - task: "Map-based location picker (Leaflet + OSM)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/MapPicker.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Cross-platform via WebView (iOS/Android) + iframe (web). Tap to pin, drag to refine, search bar, 'use my current location'. Auto reverse-geocode. Polyline rendered when route fetched. Verified rendering in web preview screenshot."
+
+  - task: "Service screen with real road distance"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(passenger)/service.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Replaced fixed landmark modal with embedded MapPicker. Distance/duration now from OSRM. Fare recomputed on route fetch."
+
+  - task: "First-time signup name screen"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/otp.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "After OTP verify, if backend returns requires_name, OTP screen switches to a name-entry step. Re-submits with name to complete auth."
+
+  - task: "Scrollable login/otp/role-select"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/{login,otp,role-select}.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Wrapped all three pre-auth screens in ScrollView with keyboardShouldPersistTaps. Verified visible on 390x844 viewport."
+
+  - task: "Admin landmarks management UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(admin)/fares.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Converted Fares screen into tabbed Config screen with Fares + Landmarks tabs. Landmarks tab: list, add, edit, delete via modal sheet."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.1"
+  test_sequence: 2
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Modular backend refactor (auth, users, config, drivers, rides, suggestions, admin, geo)"
+    - "Geo proxy endpoints (/api/geo/search, /reverse, /route, /region)"
+    - "First-time signup with name collection"
+    - "Admin landmarks CRUD"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Phase 1 implemented. Major changes:
+      
+      BACKEND (needs full retest of existing + new routes):
+      - Refactored server.py (684→64 lines). Routes now in app/routes/{auth,users,config,drivers,rides,suggestions,admin,geo}.py
+      - NEW: /api/geo/{region,search,reverse,route} — proxies Nominatim + OSRM (free).
+      - CHANGED: /api/auth/verify-otp — now requires `name` for new users (returns {requires_name: true} otherwise).
+      - NEW: /api/admin/landmarks GET/POST/PATCH/DELETE for landmark management.
+      - All other existing routes (paths) unchanged.
+      
+      Please run the existing test_tirthride_api.py suite + verify:
+      1. /api/geo/route returns distance_km > 0 with valid polyline for Govardhan coords
+      2. /api/geo/search returns results for "radha kund" or "govardhan"
+      3. /api/auth/verify-otp with new phone + no name returns {requires_name: true}
+      4. /api/auth/verify-otp with new phone + name creates user and returns access_token
+      5. /api/admin/landmarks CRUD as admin
+      
+      Test credentials in /app/memory/test_credentials.md.
