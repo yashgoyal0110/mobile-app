@@ -17,6 +17,7 @@ export default function AdminProfile() {
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -55,16 +56,15 @@ export default function AdminProfile() {
     );
   };
 
-  const logout = () => {
-    confirmDialog(
-      "Sign out?",
-      "You'll be redirected to the role selection",
-      async () => {
-        await signOut();
-        router.replace("/role-select");
-      },
-      { confirmLabel: "Sign out", destructive: true }
-    );
+  const logout = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.replace("/role-select");
+    } catch (e: any) {
+      setSigningOut(false);
+      notify("Sign out failed", e.message);
+    }
   };
 
   return (
@@ -132,10 +132,11 @@ export default function AdminProfile() {
         )}
 
         <TButton
-          label="Sign out"
+          label={signingOut ? "Signing out..." : "Sign out"}
           variant="outline"
           onPress={logout}
-          icon={<Feather name="log-out" size={16} color={colors.text} />}
+          loading={signingOut}
+          icon={signingOut ? undefined : <Feather name="log-out" size={16} color={colors.text} />}
           testID="admin-signout-btn"
           style={{ marginTop: spacing.xl }}
         />

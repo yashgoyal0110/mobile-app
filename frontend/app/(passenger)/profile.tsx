@@ -17,6 +17,7 @@ export default function PassengerProfile() {
   const { user, signOut, refresh } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const save = async () => {
     setSaving(true);
@@ -31,16 +32,15 @@ export default function PassengerProfile() {
     }
   };
 
-  const logout = () => {
-    confirmDialog(
-      "Sign out?",
-      "You'll need to verify your OTP again",
-      async () => {
-        await signOut();
-        router.replace("/role-select");
-      },
-      { confirmLabel: "Sign out", destructive: true }
-    );
+  const logout = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.replace("/role-select");
+    } catch (e: any) {
+      setSigningOut(false);
+      notify("Sign out failed", e.message);
+    }
   };
 
   return (
@@ -79,10 +79,11 @@ export default function PassengerProfile() {
         </Card>
 
         <TButton
-          label="Sign out"
+          label={signingOut ? "Signing out..." : "Sign out"}
           variant="outline"
           onPress={logout}
-          icon={<Feather name="log-out" size={16} color={colors.text} />}
+          loading={signingOut}
+          icon={signingOut ? undefined : <Feather name="log-out" size={16} color={colors.text} />}
           testID="profile-signout-btn"
           style={{ marginTop: spacing.xl }}
         />

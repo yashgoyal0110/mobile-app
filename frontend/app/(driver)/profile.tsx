@@ -17,6 +17,7 @@ export default function DriverProfile() {
   const { user, driver, signOut, refresh } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const save = async () => {
     setSaving(true);
@@ -31,16 +32,15 @@ export default function DriverProfile() {
     }
   };
 
-  const logout = () => {
-    confirmDialog(
-      "Sign out?",
-      "You'll need OTP to log back in",
-      async () => {
-        await signOut();
-        router.replace("/role-select");
-      },
-      { confirmLabel: "Sign out", destructive: true }
-    );
+  const logout = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.replace("/role-select");
+    } catch (e: any) {
+      setSigningOut(false);
+      notify("Sign out failed", e.message);
+    }
   };
 
   return (
@@ -76,10 +76,11 @@ export default function DriverProfile() {
         </Card>
 
         <TButton
-          label="Sign out"
+          label={signingOut ? "Signing out..." : "Sign out"}
           variant="outline"
           onPress={logout}
-          icon={<Feather name="log-out" size={16} color={colors.text} />}
+          loading={signingOut}
+          icon={signingOut ? undefined : <Feather name="log-out" size={16} color={colors.text} />}
           testID="driver-profile-signout"
           style={{ marginTop: spacing.xl }}
         />
