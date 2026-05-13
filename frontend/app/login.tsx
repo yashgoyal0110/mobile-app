@@ -82,8 +82,10 @@ export default function Login() {
 
           <View style={styles.devNote}>
             <Feather name="info" size={14} color={colors.info} />
-            <TText variant="bodySm" color={colors.info} style={{ marginLeft: 6 }}>
-              Dev mode: use OTP 123456
+            <TText variant="bodySm" color={colors.info} style={{ marginLeft: 6, flex: 1 }}>
+              {role === "admin"
+                ? "Dev admin: phone 9999999999, OTP 123456"
+                : "Dev mode: use OTP 123456"}
             </TText>
           </View>
         </View>

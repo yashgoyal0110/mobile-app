@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, ScrollView, Alert, RefreshControl } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -8,6 +8,7 @@ import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { api } from "../../src/api";
 import { useAuth } from "../../src/auth";
+import { notify, confirmDialog } from "../../src/utils/dialog";
 import { colors, radius, spacing } from "../../src/theme";
 
 export default function AdminProfile() {
@@ -33,31 +34,37 @@ export default function AdminProfile() {
       await api(`/admin/withdrawals/${id}/mark-paid`, { method: "POST" });
       load();
     } catch (e: any) {
-      Alert.alert("Failed", e.message);
+      notify("Failed", e.message);
     }
   };
 
-  const applySuggestion = async (id: string) => {
-    Alert.alert("Apply this fare suggestion?", "It will become the new active fare", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Apply",
-        onPress: async () => {
-          try {
-            await api(`/admin/suggestions/${id}/apply`, { method: "POST" });
-            Alert.alert("Applied");
-            load();
-          } catch (e: any) {
-            Alert.alert("Failed", e.message);
-          }
-        },
+  const applySuggestion = (id: string) => {
+    confirmDialog(
+      "Apply this fare suggestion?",
+      "It will become the new active fare",
+      async () => {
+        try {
+          await api(`/admin/suggestions/${id}/apply`, { method: "POST" });
+          notify("Applied");
+          load();
+        } catch (e: any) {
+          notify("Failed", e.message);
+        }
       },
-    ]);
+      { confirmLabel: "Apply" }
+    );
   };
 
-  const logout = async () => {
-    await signOut();
-    router.replace("/role-select");
+  const logout = () => {
+    confirmDialog(
+      "Sign out?",
+      "You'll be redirected to the role selection",
+      async () => {
+        await signOut();
+        router.replace("/role-select");
+      },
+      { confirmLabel: "Sign out", destructive: true }
+    );
   };
 
   return (

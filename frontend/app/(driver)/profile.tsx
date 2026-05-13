@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,6 +9,7 @@ import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { api } from "../../src/api";
 import { useAuth } from "../../src/auth";
+import { notify, confirmDialog } from "../../src/utils/dialog";
 import { colors, radius, spacing } from "../../src/theme";
 
 export default function DriverProfile() {
@@ -22,19 +23,24 @@ export default function DriverProfile() {
     try {
       await api("/users/me", { method: "PATCH", body: { name } });
       await refresh();
-      Alert.alert("Saved");
+      notify("Saved");
     } catch (e: any) {
-      Alert.alert("Failed", e.message);
+      notify("Failed", e.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const logout = async () => {
-    Alert.alert("Sign out?", "You'll need OTP to log back in", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: async () => { await signOut(); router.replace("/role-select"); } },
-    ]);
+  const logout = () => {
+    confirmDialog(
+      "Sign out?",
+      "You'll need OTP to log back in",
+      async () => {
+        await signOut();
+        router.replace("/role-select");
+      },
+      { confirmLabel: "Sign out", destructive: true }
+    );
   };
 
   return (
