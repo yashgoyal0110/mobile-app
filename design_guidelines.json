@@ -1,0 +1,219 @@
+{
+  "theme_and_archetype": {
+    "domain": "Ride-hailing / Spiritual Tourism",
+    "theme": "light",
+    "archetype": "Archetype 1 (Organic & Earthy) mixed with trust-centric utility",
+    "rationale": "Govardhan is a holy city. The app needs to feel devotional, welcoming, and safe without relying on cliché pure saffron. We blend warm earthy tones with high-contrast elements for outdoor visibility and ride-hailing reliability."
+  },
+  "design_tokens": {
+    "colors": {
+      "primary": "#E68A00",
+      "primary_light": "#FFF4E5",
+      "primary_dark": "#B36B00",
+      "background_base": "#FAFAF5",
+      "surface": "#FFFFFF",
+      "text_main": "#1A2421",
+      "text_muted": "#5C6B66",
+      "text_inverse": "#FFFFFF",
+      "border": "#EAEAE3",
+      "success": "#287D3C",
+      "success_bg": "#E8F5E9",
+      "error": "#DA3633",
+      "error_bg": "#FFEBEE",
+      "warning": "#F57C00",
+      "parikrama_accent": "#8D4E24",
+      "driver_online": "#4CAF50",
+      "driver_offline": "#9E9E9E"
+    },
+    "typography": {
+      "font_family_heading": "Outfit",
+      "font_family_body": "Manrope",
+      "sizes": {
+        "h1": { "fontSize": 32, "lineHeight": 40, "letterSpacing": -0.5, "fontWeight": "800" },
+        "h2": { "fontSize": 24, "lineHeight": 32, "letterSpacing": -0.5, "fontWeight": "700" },
+        "h3": { "fontSize": 20, "lineHeight": 28, "fontWeight": "600" },
+        "body_lg": { "fontSize": 18, "lineHeight": 26, "fontWeight": "500" },
+        "body": { "fontSize": 16, "lineHeight": 24, "fontWeight": "400" },
+        "body_sm": { "fontSize": 14, "lineHeight": 20, "fontWeight": "500" },
+        "caption": { "fontSize": 12, "lineHeight": 16, "letterSpacing": 0.5, "fontWeight": "600", "textTransform": "uppercase" }
+      }
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32,
+      "2xl": 48,
+      "safe_area_bottom": 24
+    },
+    "border_radius": {
+      "sm": 8,
+      "md": 12,
+      "lg": 16,
+      "pill": 9999,
+      "bottom_sheet": 24
+    },
+    "shadows": {
+      "sm": {
+        "shadowColor": "#1A2421",
+        "shadowOffset": { "width": 0, "height": 2 },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 4,
+        "elevation": 2
+      },
+      "md": {
+        "shadowColor": "#1A2421",
+        "shadowOffset": { "width": 0, "height": 4 },
+        "shadowOpacity": 0.08,
+        "shadowRadius": 8,
+        "elevation": 4
+      }
+    }
+  },
+  "iconography": {
+    "library": "@expo/vector-icons/Feather",
+    "stroke_width": 2.5,
+    "rationale": "Feather icons provide a premium, lightweight feel that counters the heavy text and buttons, bringing balance to the organic UI."
+  },
+  "component_specs": {
+    "buttons": {
+      "primary": "bg: primary, radius: pill, paddingVertical: 16, text: text_inverse, fontWeight: 700. Add subtle scale down on press.",
+      "secondary": "bg: primary_light, radius: pill, paddingVertical: 16, text: primary_dark, fontWeight: 700.",
+      "outline": "bg: transparent, border: 1px solid border, radius: pill, paddingVertical: 16, text: text_main"
+    },
+    "cards": {
+      "base": "bg: surface, radius: lg, padding: lg, shadow: sm, border: 1px solid border",
+      "service_tile": "Vertical layout, icon top-left, title bold, subtle background tint for Parikrama tiles (primary_light)."
+    },
+    "inputs": {
+      "text_field": "bg: surface, border: 1px solid border, radius: md, padding: 16, fontSize: 16. Focus state: border: primary, borderWidth: 2",
+      "otp_box": "Size: 56x56, text: h2 centered, border: 1px solid border, radius: md. Focus: border: primary."
+    },
+    "status_pill": {
+      "requested": "bg: #FFF9C4, text: #F57F17, radius: pill, paddingHorizontal: 12, paddingVertical: 6",
+      "accepted": "bg: #E3F2FD, text: #1565C0",
+      "started": "bg: primary_light, text: primary_dark",
+      "completed": "bg: success_bg, text: success"
+    },
+    "timeline": {
+      "container": "Left border 2px solid border, relative positioning",
+      "node": "Absolute left: -9px, width 16px, height 16px, radius pill, bg: surface, border: 4px solid primary",
+      "content": "paddingLeft: 24, paddingBottom: 24"
+    },
+    "bottom_sheet": {
+      "style": "bg: surface, borderTopLeftRadius: bottom_sheet, borderTopRightRadius: bottom_sheet, shadow: md",
+      "indicator": "width: 40, height: 4, bg: border, radius: pill, alignSelf: center, marginTop: 12"
+    }
+  },
+  "screens": {
+    "Splash": {
+      "layout": "Full-screen background image (Temple sunset) with dark overlay (bg-black/40). TirthRide logo centered (text_inverse, h1).",
+      "components": ["ImageBackground", "Text"]
+    },
+    "RoleSelection": {
+      "layout": "Bottom sheet style container over a soft background. Three large vertical cards: Passenger, Driver, Admin. Cards have icon and label.",
+      "components": ["Card", "FeatherIcon", "Text"]
+    },
+    "OTPFlow": {
+      "layout": "Header: 'Enter Mobile Number'. Subtitle: 'OTP will be sent'. Input: Large text field with +91 prefix. Button: Primary CTA at the bottom. Next screen: 4-6 OTP boxes.",
+      "components": ["TextInput", "OTPBox", "PrimaryButton"]
+    },
+    "PassengerHome": {
+      "layout": "Top: Greeting + Profile avatar. Body: 'Where to?' section. Grid of 3 Service Tiles: 1 wide tile for 'Local Transport', 2 side-by-side tiles for 'Poochari (12km)' and 'Radhakund (7km)'. Bottom tab bar.",
+      "components": ["Header", "ServiceTileCard", "BottomNav"]
+    },
+    "ServiceSelection": {
+      "layout": "If Local: Pickup/Drop location inputs (mimic Google Places). If Parikrama: Details of route, estimated time, and fare. CTA: 'Confirm & Find Driver'.",
+      "components": ["LocationInput", "PricingCard", "PrimaryButton"]
+    },
+    "BookingScreen": {
+      "layout": "No live map. Use a prominent Status Timeline (Searching -> Driver Accepted -> Arriving). Show Driver Card (Photo, Name, Vehicle No, Rating) once accepted. Pin code displayed prominently (h1).",
+      "components": ["StatusTimeline", "DriverInfoCard", "PINDisplay", "CancelButton"]
+    },
+    "RideTracking": {
+      "layout": "Status updates in real-time. Action buttons: 'Call Driver', 'Share Details'. Fare summary at bottom.",
+      "components": ["Timeline", "ActionRow", "FareSummaryCard"]
+    },
+    "PastRides": {
+      "layout": "List view. Each item: Date, Route (Pickup to Drop), Fare, StatusPill (Completed/Cancelled).",
+      "components": ["FlatList", "RideHistoryCard", "StatusPill"]
+    },
+    "Profile": {
+      "layout": "Avatar, Name, Phone. Menu items: Edit Profile, Payment Methods, App Language, Logout.",
+      "components": ["Avatar", "MenuList", "Divider"]
+    },
+    "DriverHome": {
+      "layout": "Top: Large Online/Offline Toggle switch. Center: 'Looking for riders...' animation if online. Bottom: Earnings today summary card.",
+      "components": ["LargeToggle", "PulseAnimation", "EarningsCard"]
+    },
+    "IncomingRideCard": {
+      "layout": "Modal/Bottom Sheet. Route: Pickup -> Drop. Est Fare. Distance. Two large buttons: 'Accept' (Primary), 'Pass' (Outline). Timer bar shrinking at top.",
+      "components": ["RouteDisplay", "TimerBar", "AcceptRejectButtons"]
+    },
+    "Earnings": {
+      "layout": "Top: Total Balance. CTA: 'Withdraw to UPI'. Graph/List of recent earnings per ride.",
+      "components": ["BalanceHero", "PrimaryButton", "EarningsList"]
+    },
+    "KYCUploadFlow": {
+      "layout": "Step-by-step wizard. Step 1: Aadhar (Front/Back upload areas). Step 2: Vehicle RC. Step 3: Profile Photo. Step 4: UPI ID. Use dashed borders for upload zones.",
+      "components": ["Stepper", "UploadZone", "TextInput"]
+    },
+    "AdminDashboard": {
+      "layout": "Metrics Grid: Total Rides, Active Drivers, Revenue. Quick Links: Pending Approvals, Audit Logs.",
+      "components": ["MetricsGrid", "ActionCards"]
+    },
+    "AdminFareConfig": {
+      "layout": "List of editable fields: Base Fare, Per Km, Commission %, Parikrama Package 1 Fare, etc. CTA: 'Save Changes'.",
+      "components": ["FormGroup", "TextInput", "PrimaryButton"]
+    },
+    "DriverApprovalList": {
+      "layout": "List of pending drivers. Tap to expand: shows Aadhar, RC images, UPI. Action: Approve (Green) or Reject (Red).",
+      "components": ["ExpandableList", "ImagePreview", "ApprovalButtons"]
+    },
+    "AuditLog": {
+      "layout": "Detailed table/list of all rides. Search bar by ride ID. Filters: Date, Status, Driver.",
+      "components": ["SearchBar", "FilterChips", "AuditList"]
+    }
+  },
+  "micro_interactions": {
+    "button_press": "Scale transform to 0.96 with spring physics (friction: 5, tension: 40).",
+    "bottom_sheet_enter": "Slide up from bottom with spring animation. Background overlay fades in to opacity 0.5.",
+    "ride_match_pulse": "Concentric circles expanding from the center icon, fading out (opacity 1 to 0, scale 1 to 2) over 1.5s.",
+    "otp_focus": "Border color transitions to primary, slight elevation increase."
+  },
+  "testID_conventions": {
+    "format": "kebab-case",
+    "structure": "{screen}-{element}-{action/role}",
+    "examples": [
+      "otp-input-field",
+      "login-submit-button",
+      "passenger-home-local-ride-tile",
+      "booking-cancel-button",
+      "driver-status-toggle"
+    ],
+    "rule": "Every button, input, card, and modal MUST have a data-testid assigned for QA automation."
+  },
+  "media": {
+    "hero_splash_background": {
+      "url": "https://images.unsplash.com/photo-1765298409890-45d17b3ac8f9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHw0fHxpbmRpYW4lMjB0ZW1wbGUlMjBzdW5zZXR8ZW58MHx8fHwxNzc4NjU0NTUyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Sunset over Indian architecture/temples, sets a calm, devotional, and premium tone for the splash screen."
+    },
+    "driver_empty_state": {
+      "url": "https://images.unsplash.com/photo-1662101910918-0d2fb2d00efd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBlLXJpY2tzaGF3fGVufDB8fHx8MTc3ODY1NDU1Mnww&ixlib=rb-4.1.0&q=85",
+      "description": "Indian e-rickshaw image, useful for Driver Home empty states or KYC onboarding background."
+    },
+    "parikrama_package_cover": {
+      "url": "https://images.unsplash.com/photo-1769939280538-2c37aeb5dcca?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwzfHxpbmRpYW4lMjB0ZW1wbGUlMjBzdW5zZXR8ZW58MHx8fHwxNzc4NjU0NTUyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Temple bells silhouette. Use as a background or thumbnail for the Parikrama Package cards."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use standard React Native `StyleSheet` or `NativeWind` depending on the project setup, mapping the JSON tokens strictly.",
+    "Do NOT use pure black (#000000) or pure white for the app background. Stick to the `background_base` (#FAFAF5) and `text_main` (#1A2421) values.",
+    "Implement the `StatusTimeline` component natively using View borders and absolute positioning, do not rely on heavy external map libraries for standard tracking views as requested.",
+    "Ensure all touchable areas have a minimum height of 48px for accessibility.",
+    "Apply `data-testid` (or `testID` in React Native) to every interactive component.",
+    "For icons, install `@expo/vector-icons` and strictly use the `Feather` library to maintain the elegant UI."
+  ]
+}
