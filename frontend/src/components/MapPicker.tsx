@@ -33,6 +33,11 @@ export interface MapPickerProps {
   center?: { lat: number; lng: number };
   polyline?: [number, number][] | null;
   height?: number;
+  /** When provided, renders an animated driver marker that smoothly moves
+   *  between updates. Hides search/recenter UI for a clean tracking view. */
+  driverLocation?: { lat: number; lng: number; heading?: number | null } | null;
+  /** Hide search bar + mode hint (use for pure tracking maps). */
+  trackingOnly?: boolean;
 }
 
 const DEFAULT_BBOX = { south: 27.40, north: 27.60, west: 77.38, east: 77.58 };
@@ -68,6 +73,8 @@ function buildHtml(center: { lat: number; lng: number }, bbox: { south: number; 
   map.setMinZoom(12);
 
   let pickupMarker = null, dropMarker = null, routeLine = null;
+  let driverMarker = null;
+  let driverAnim = null;
   let currentMode = 'pickup';
   function send(msg){
     if(window.ReactNativeWebView && window.ReactNativeWebView.postMessage){
@@ -83,6 +90,23 @@ function buildHtml(center: { lat: number; lng: number }, bbox: { south: number; 
       iconSize:[34,34], iconAnchor:[17,17]
     });
   }
+  function makeDriverIcon(heading){
+    var rot = (heading == null) ? 0 : heading;
+    return L.divIcon({
+      className:'',
+      html:'<div style="position:relative;width:46px;height:46px;display:flex;align-items:center;justify-content:center;">'
+           +'<div style="position:absolute;width:46px;height:46px;border-radius:23px;background:rgba(229,148,77,0.25);animation:pulse 1.6s infinite ease-out;"></div>'
+           +'<div style="position:relative;width:34px;height:34px;border-radius:17px;background:#E5944D;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;transform:rotate('+rot+'deg);">'
+           +'<span style="font-size:18px;line-height:1;">🛺</span></div></div>',
+      iconSize:[46,46], iconAnchor:[23,23]
+    });
+  }
+  // Inject pulse animation once
+  (function(){
+    var s = document.createElement('style');
+    s.innerHTML = '@keyframes pulse { 0% { transform: scale(0.6); opacity: 0.8 } 100% { transform: scale(1.6); opacity: 0 } }';
+    document.head.appendChild(s);
+  })();
   const ICON_PICKUP = makeIcon('🟢','#2A8F47');
   const ICON_DROP = makeIcon('🔴','#D64545');
   function setPickup(latlng){
@@ -94,6 +118,29 @@ function buildHtml(center: { lat: number; lng: number }, bbox: { south: number; 
     if(dropMarker){ dropMarker.setLatLng(latlng); } else { dropMarker = L.marker(latlng,{icon:ICON_DROP, draggable:true}).addTo(map);
       dropMarker.on('dragend', e=>{ const ll = e.target.getLatLng(); send({type:'pick',mode:'drop',lat:ll.lat,lng:ll.lng});});
     }
+  }
+  // Smoothly animate driver marker between two positions over ~1s
+  function setDriver(lat, lng, heading){
+    var target = L.latLng(lat, lng);
+    if(!driverMarker){
+      driverMarker = L.marker(target, { icon: makeDriverIcon(heading) }).addTo(map);
+      return;
+    }
+    if(driverAnim){ cancelAnimationFrame(driverAnim); driverAnim = null; }
+    var start = driverMarker.getLatLng();
+    var t0 = performance.now();
+    var dur = 950;
+    function step(now){
+      var k = Math.min(1, (now - t0) / dur);
+      // ease-out
+      var e = 1 - Math.pow(1 - k, 3);
+      var la = start.lat + (target.lat - start.lat) * e;
+      var lo = start.lng + (target.lng - start.lng) * e;
+      driverMarker.setLatLng([la, lo]);
+      if(k < 1){ driverAnim = requestAnimationFrame(step); }
+      else { driverAnim = null; driverMarker.setIcon(makeDriverIcon(heading)); }
+    }
+    driverAnim = requestAnimationFrame(step);
   }
   map.on('click', e=>{
     if(currentMode==='pickup'){ setPickup(e.latlng); }
@@ -108,9 +155,19 @@ function buildHtml(center: { lat: number; lng: number }, bbox: { south: number; 
       if(msg.type==='setMode'){ currentMode = msg.mode; send({type:'modeChanged',mode:currentMode}); }
       else if(msg.type==='setPickup'){ setPickup({lat:msg.lat,lng:msg.lng}); }
       else if(msg.type==='setDrop'){ setDrop({lat:msg.lat,lng:msg.lng}); }
+      else if(msg.type==='setDriver'){ setDriver(msg.lat, msg.lng, msg.heading); }
       else if(msg.type==='clearPickup'){ if(pickupMarker){ map.removeLayer(pickupMarker); pickupMarker=null; } }
       else if(msg.type==='clearDrop'){ if(dropMarker){ map.removeLayer(dropMarker); dropMarker=null; } }
+      else if(msg.type==='clearDriver'){ if(driverMarker){ map.removeLayer(driverMarker); driverMarker=null; } }
       else if(msg.type==='fly'){ map.flyTo([msg.lat,msg.lng], msg.zoom||16); }
+      else if(msg.type==='fitAll'){
+        var pts = [];
+        if(pickupMarker) pts.push(pickupMarker.getLatLng());
+        if(dropMarker) pts.push(dropMarker.getLatLng());
+        if(driverMarker) pts.push(driverMarker.getLatLng());
+        if(pts.length>=2){ map.fitBounds(L.latLngBounds(pts), { padding:[60,60], maxZoom:16 }); }
+        else if(pts.length===1){ map.setView(pts[0], 16); }
+      }
       else if(msg.type==='polyline'){
         if(routeLine){ map.removeLayer(routeLine); routeLine=null; }
         if(msg.points && msg.points.length){
@@ -133,7 +190,7 @@ function buildHtml(center: { lat: number; lng: number }, bbox: { south: number; 
 }
 
 const MapPicker = forwardRef<any, MapPickerProps>(function MapPicker(props, ref) {
-  const { pickup, drop, mode, onChange, bbox = DEFAULT_BBOX, center = DEFAULT_CENTER, polyline, height = 320 } = props;
+  const { pickup, drop, mode, onChange, bbox = DEFAULT_BBOX, center = DEFAULT_CENTER, polyline, height = 320, driverLocation, trackingOnly } = props;
   const webRef = useRef<WebView>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [ready, setReady] = useState(false);
@@ -156,6 +213,15 @@ const MapPicker = forwardRef<any, MapPickerProps>(function MapPicker(props, ref)
   useEffect(() => { if (ready) post({ type: "setMode", mode }); }, [mode, ready, post]);
   useEffect(() => { if (ready && pickup) post({ type: "setPickup", lat: pickup.lat, lng: pickup.lng }); }, [pickup?.lat, pickup?.lng, ready, post]);
   useEffect(() => { if (ready && drop) post({ type: "setDrop", lat: drop.lat, lng: drop.lng }); }, [drop?.lat, drop?.lng, ready, post]);
+  useEffect(() => {
+    if (!ready) return;
+    if (driverLocation) {
+      post({ type: "setDriver", lat: driverLocation.lat, lng: driverLocation.lng, heading: driverLocation.heading ?? 0 });
+      post({ type: "fitAll" });
+    } else {
+      post({ type: "clearDriver" });
+    }
+  }, [driverLocation?.lat, driverLocation?.lng, driverLocation?.heading, ready, post]);
   useEffect(() => {
     if (!ready) return;
     if (polyline && polyline.length) post({ type: "polyline", points: polyline });
@@ -268,6 +334,7 @@ const MapPicker = forwardRef<any, MapPickerProps>(function MapPicker(props, ref)
       )}
 
       {/* Top overlay: search + mode + use current */}
+      {!trackingOnly && (
       <View style={styles.topOverlay} pointerEvents="box-none">
         <View style={styles.searchRow}>
           <Feather name="search" size={16} color={colors.textMuted} style={{ marginLeft: 10 }} />
@@ -311,8 +378,9 @@ const MapPicker = forwardRef<any, MapPickerProps>(function MapPicker(props, ref)
           </View>
         )}
       </View>
+      )}
 
-      {searching && (
+      {searching && !trackingOnly && (
         <View style={styles.searchingPill}>
           <ActivityIndicator size="small" color={colors.primary} />
           <TText variant="caption" muted style={{ marginLeft: 6 }}>Searching…</TText>
@@ -320,12 +388,14 @@ const MapPicker = forwardRef<any, MapPickerProps>(function MapPicker(props, ref)
       )}
 
       {/* Mode hint */}
+      {!trackingOnly && (
       <View style={styles.modeHint}>
         <View style={[styles.modeDot, { backgroundColor: mode === "pickup" ? "#2A8F47" : "#D64545" }]} />
         <TText variant="caption" weight="600">
           Tap map to set {mode === "pickup" ? "PICKUP" : "DROP"}
         </TText>
       </View>
+      )}
     </View>
   );
 });

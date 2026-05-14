@@ -77,6 +77,10 @@ export default function OtpScreen() {
       Alert.alert("Please enter your full name", "Minimum 2 characters");
       return;
     }
+    if (!/^[A-Za-z][A-Za-z .'-]{1,49}$/.test(trimmed)) {
+      Alert.alert("Invalid name", "Name should only contain letters, spaces, dots, hyphens or apostrophes — no numbers or special characters.");
+      return;
+    }
     await verify(otpValue, trimmed);
   };
 
@@ -160,7 +164,7 @@ export default function OtpScreen() {
                   <View style={styles.devHint}>
                     <Feather name="key" size={14} color={colors.info} />
                     <TText variant="bodySm" color={colors.info} style={{ marginLeft: 6 }}>
-                      Dev OTP: {params.dev}
+                      Your OTP is {params.dev} (sticky per account)
                     </TText>
                   </View>
                 ) : null}
@@ -186,13 +190,14 @@ export default function OtpScreen() {
                   <TInput
                     label="Full name"
                     value={name}
-                    onChangeText={setName}
+                    onChangeText={(v) => setName(v.replace(/[^A-Za-z .'\-]/g, ""))}
                     placeholder="e.g. Rohan Sharma"
                     autoCapitalize="words"
                     returnKeyType="done"
                     onSubmitEditing={submitName}
                     autoFocus
                     testID="onboarding-name-input"
+                    maxLength={50}
                   />
                 </View>
 

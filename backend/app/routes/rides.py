@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from ..db import db
 from ..deps import get_current_user, require_role
-from ..models import CreateRideReq, CancelReq, VerifyPinReq
+from ..models import CreateRideReq, CancelReq, VerifyPinReq, TipReq
 from ..realtime import manager, haversine_km, push_expo
 from ..utils import now, new_id, iso, clean, gen_pin
 
@@ -84,6 +84,7 @@ async def create_ride(req: CreateRideReq, user: dict = Depends(require_role("pas
         "fare": fare,
         "commission": commission,
         "driver_earning": round(fare - commission, 2),
+        "tip": 0.0,
         "payment_method": req.payment_method,
         "status": "scheduled" if scheduled_at else "requested",
         "pin": pin,
@@ -135,7 +136,16 @@ async def get_ride(ride_id: str, user: dict = Depends(get_current_user)):
     if user["role"] == "passenger" and ride.get("driver_id") and ride.get("status") in ("accepted", "started"):
         drv = await db.drivers.find_one({"user_id": ride["driver_id"]})
         if drv and drv.get("current_lat") is not None:
-            out["driver_location"] = {"lat": drv["current_lat"], "lng": drv["current_lng"]}
+            out["driver_location"] = {
+                "lat": drv["current_lat"],
+                "lng": drv["current_lng"],
+                "heading": drv.get("heading"),
+                "speed": drv.get("speed"),
+            }
+    # Include passenger's last known location for driver view (after accept)
+    if user["role"] == "driver" and ride.get("status") in ("accepted", "started"):
+        if ride.get("passenger_lat") is not None:
+            out["passenger_location"] = {"lat": ride["passenger_lat"], "lng": ride["passenger_lng"]}
     return out
 
 
@@ -214,6 +224,49 @@ async def complete_ride(ride_id: str, user: dict = Depends(require_role("driver"
         {"ride_id": ride_id, "type": "ride_completed"},
     )
     return {"ok": True, "status": "completed"}
+
+
+@router.post("/{ride_id}/tip")
+async def add_tip(ride_id: str, req: TipReq, user: dict = Depends(require_role("passenger"))):
+    """Increase fare by a tip amount (10/20/50) to attract drivers.
+
+    Only allowed while the ride is still in `requested` state (no driver assigned).
+    Re-broadcasts the boosted ride to eligible drivers in radius so they get a
+    fresh, higher-fare alert.
+    """
+    if req.amount not in (10, 20, 50):
+        raise HTTPException(400, "Tip must be 10, 20 or 50")
+    ride = await db.rides.find_one({"id": ride_id, "passenger_id": user["id"]})
+    if not ride:
+        raise HTTPException(404, "Ride not found")
+    if ride["status"] != "requested" or ride.get("driver_id"):
+        raise HTTPException(400, "Tips can only be added while still searching for a driver")
+    cfg = await db.fare_config.find_one({"id": "default"}) or {}
+    tip_total = float(ride.get("tip", 0)) + float(req.amount)
+    new_fare = round(float(ride["fare"]) + float(req.amount), 2)
+    new_commission = round(new_fare * cfg.get("commission_pct", 10) / 100, 2)
+    new_earning = round(new_fare - new_commission, 2)
+    audit = ride.get("audit_log", []) + [{"at": iso(now()), "event": "tip_added", "by": user["id"], "amount": req.amount}]
+    await db.rides.update_one({"id": ride_id}, {"$set": {
+        "fare": new_fare,
+        "commission": new_commission,
+        "driver_earning": new_earning,
+        "tip": tip_total,
+        "audit_log": audit,
+    }})
+    fresh = await db.rides.find_one({"id": ride_id})
+    # Re-broadcast to eligible drivers so they see boosted fare
+    eligible = await _eligible_drivers_for_ride(fresh, cfg)
+    driver_ids = [d["user_id"] for d in eligible]
+    payload = {"type": "ride_requested", "ride": clean(fresh), "boosted": True}
+    await manager.broadcast(driver_ids, payload)
+    await _push_users(
+        driver_ids,
+        f"₹{int(tip_total)} tip added 💰",
+        f"Boosted fare ₹{new_fare:.0f} • {ride.get('type', 'ride')}",
+        {"ride_id": ride_id, "type": "ride_requested"},
+    )
+    return clean(fresh)
 
 
 @router.post("/{ride_id}/cancel")

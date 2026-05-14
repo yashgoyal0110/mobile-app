@@ -71,6 +71,10 @@ class CancelReq(BaseModel):
     reason: str
 
 
+class TipReq(BaseModel):
+    amount: float  # increment on top of current fare (e.g. 10 or 20)
+
+
 class VerifyPinReq(BaseModel):
     pin: str
 

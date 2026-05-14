@@ -5,7 +5,9 @@ set custom headers on the initial WS handshake reliably). Once connected,
 the user is registered in the ConnectionManager and the server pushes
 JSON events for any relevant ride lifecycle changes.
 
-Client can also send a `ping` to keep the connection alive.
+Client can also send a `ping` to keep the connection alive, or `location`
+updates which are persisted and forwarded to the other party on an active
+ride.
 """
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
@@ -41,17 +43,27 @@ async def ws_endpoint(websocket: WebSocket, token: str = Query(...)):
     try:
         while True:
             msg = await websocket.receive_json()
-            if msg.get("type") == "ping":
+            mtype = msg.get("type")
+            if mtype == "ping":
                 await websocket.send_json({"type": "pong"})
-            elif msg.get("type") == "location" and user.get("role") == "driver":
+            elif mtype == "location":
                 lat = msg.get("lat")
                 lng = msg.get("lng")
-                if isinstance(lat, (int, float)) and isinstance(lng, (int, float)):
+                if not (isinstance(lat, (int, float)) and isinstance(lng, (int, float))):
+                    continue
+                heading = msg.get("heading")
+                speed = msg.get("speed")
+                role = user.get("role")
+                if role == "driver":
                     await db.drivers.update_one(
                         {"user_id": user_id},
-                        {"$set": {"current_lat": lat, "current_lng": lng}}
+                        {"$set": {
+                            "current_lat": lat,
+                            "current_lng": lng,
+                            "heading": heading,
+                            "speed": speed,
+                        }}
                     )
-                    # Forward to any passenger watching a ride with this driver
                     active = await db.rides.find_one({
                         "driver_id": user_id,
                         "status": {"$in": ["accepted", "started"]}
@@ -59,6 +71,24 @@ async def ws_endpoint(websocket: WebSocket, token: str = Query(...)):
                     if active and active.get("passenger_id"):
                         await manager.send_to_user(active["passenger_id"], {
                             "type": "driver_location",
+                            "ride_id": active["id"],
+                            "lat": lat,
+                            "lng": lng,
+                            "heading": heading,
+                            "speed": speed,
+                        })
+                elif role == "passenger":
+                    active = await db.rides.find_one({
+                        "passenger_id": user_id,
+                        "status": {"$in": ["accepted", "started"]}
+                    })
+                    if active and active.get("driver_id"):
+                        await db.rides.update_one(
+                            {"id": active["id"]},
+                            {"$set": {"passenger_lat": lat, "passenger_lng": lng}}
+                        )
+                        await manager.send_to_user(active["driver_id"], {
+                            "type": "passenger_location",
                             "ride_id": active["id"],
                             "lat": lat,
                             "lng": lng,

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, StyleSheet, ScrollView, TouchableOpacity, ImageBackground, RefreshControl } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -15,6 +15,7 @@ export default function PassengerHome() {
   const { user } = useAuth();
   const [config, setConfig] = useState<any>(null);
   const [activeRide, setActiveRide] = useState<any>(null);
+  const [recentRides, setRecentRides] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -22,10 +23,10 @@ export default function PassengerHome() {
       const cfg = await api<any>("/config/fare", { auth: false });
       setConfig(cfg);
       const r = await api<{ rides: any[] }>("/rides/mine");
-      const active = (r.rides || []).find((x) =>
-        ["requested", "accepted", "started", "scheduled"].includes(x.status)
-      );
+      const all = r.rides || [];
+      const active = all.find((x) => ["requested", "accepted", "started", "scheduled"].includes(x.status));
       setActiveRide(active || null);
+      setRecentRides(all.filter((x) => x.status === "completed").slice(0, 3));
     } catch {}
   }, []);
 
@@ -39,20 +40,26 @@ export default function PassengerHome() {
 
   const open = (type: string) => router.push({ pathname: "/(passenger)/service", params: { type } });
 
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  })();
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]} testID="passenger-home-screen">
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
         <View style={styles.header}>
           <View>
-            <TText variant="caption" muted>JAI SHRI RADHE</TText>
-            <TText variant="h2" style={{ marginTop: 2 }}>
-              Namaste, {user?.name || "Yatri"} 🙏
-            </TText>
-            <TText variant="bodySm" muted style={{ marginTop: 4 }}>
-              Where would you like to go today?
+            <TText variant="caption" muted>JAI SHRI RADHE 🙏</TText>
+            <TText variant="h2" style={{ marginTop: 2 }} numberOfLines={1}>
+              {greeting}, {user?.name?.split(" ")[0] || "Yatri"}
             </TText>
           </View>
           <TouchableOpacity
@@ -67,55 +74,72 @@ export default function PassengerHome() {
         {activeRide && (
           <TouchableOpacity
             testID="passenger-home-active-ride"
-            style={styles.activeBanner}
+            activeOpacity={0.85}
             onPress={() => router.push({ pathname: "/(passenger)/booking", params: { id: activeRide.id } })}
           >
-            <View style={{ flex: 1 }}>
-              <TText variant="caption" color={colors.primaryDark}>ACTIVE RIDE</TText>
-              <TText variant="bodyLg" weight="700" style={{ marginTop: 4 }}>
-                {labelFor(activeRide.type)}
-              </TText>
-              <View style={{ marginTop: 8 }}>
-                <StatusPill status={activeRide.status} />
+            <View style={styles.activeBanner}>
+              <View style={styles.activeIcon}>
+                <Feather name="navigation" size={20} color="#fff" />
               </View>
+              <View style={{ flex: 1, marginLeft: spacing.md }}>
+                <TText variant="caption" color="#fff" style={{ opacity: 0.85 }}>ACTIVE RIDE</TText>
+                <TText variant="bodyLg" weight="700" color="#fff">{labelFor(activeRide.type)}</TText>
+                <View style={{ marginTop: 6 }}>
+                  <StatusPill status={activeRide.status} />
+                </View>
+              </View>
+              <Feather name="chevron-right" size={24} color="#fff" />
             </View>
-            <Feather name="chevron-right" size={24} color={colors.primaryDark} />
           </TouchableOpacity>
         )}
 
-        <TText variant="h3" style={{ marginTop: spacing.lg, marginBottom: spacing.md }}>
-          Local Ride
-        </TText>
+        {/* Big "Where to?" search prompt — Uber style */}
         <TouchableOpacity
-          testID="passenger-home-local-tile"
-          style={styles.localTile}
+          testID="passenger-home-where-to"
+          style={styles.whereTo}
           activeOpacity={0.85}
           onPress={() => open("local")}
         >
-          <ImageBackground
-            source={{
-              uri: "https://images.unsplash.com/photo-1662101910918-0d2fb2d00efd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBlLXJpY2tzaGF3fGVufDB8fHx8MTc3ODY1NDU1Mnww&ixlib=rb-4.1.0&q=85",
-            }}
-            style={styles.localBg}
-            imageStyle={{ borderRadius: radius.lg }}
-          >
-            <View style={styles.localOverlay}>
-              <View>
-                <TText variant="caption" color="#FFE0A8">WITHIN GOVARDHAN</TText>
-                <TText variant="h2" color={colors.textInverse} style={{ marginTop: 4 }}>
-                  Book a local e-rickshaw
-                </TText>
-                <TText variant="bodySm" color="#FFE0A8" style={{ marginTop: 4 }}>
-                  Choose your pickup & drop in Jatipura, Radhakund, Anyor…
-                </TText>
-              </View>
-              <View style={styles.localCta}>
-                <TText variant="bodySm" weight="700" color={colors.primaryDark}>Book now</TText>
-                <Feather name="arrow-right" size={16} color={colors.primaryDark} />
-              </View>
-            </View>
-          </ImageBackground>
+          <View style={styles.whereToIcon}>
+            <Feather name="search" size={20} color={colors.text} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <TText variant="bodyLg" weight="700">Where to?</TText>
+            <TText variant="caption" muted style={{ marginTop: 2 }}>Local rides within Govardhan</TText>
+          </View>
+          <View style={styles.nowChip}>
+            <Feather name="clock" size={12} color={colors.text} />
+            <TText variant="caption" weight="600" style={{ marginLeft: 4 }}>Now</TText>
+          </View>
         </TouchableOpacity>
+
+        {/* Quick service tiles */}
+        <View style={styles.quickRow}>
+          <QuickTile
+            icon="map-pin"
+            label="Local Ride"
+            color={colors.primary}
+            bg={colors.primaryLight}
+            onPress={() => open("local")}
+            testID="passenger-home-quick-local"
+          />
+          <QuickTile
+            icon="compass"
+            label="Parikrama"
+            color={colors.parikrama}
+            bg="#FFF8E1"
+            onPress={() => open("combined")}
+            testID="passenger-home-quick-parikrama"
+          />
+          <QuickTile
+            icon="calendar"
+            label="Schedule"
+            color={colors.info}
+            bg={colors.infoBg}
+            onPress={() => open("local")}
+            testID="passenger-home-quick-schedule"
+          />
+        </View>
 
         <TText variant="h3" style={{ marginTop: spacing.xl, marginBottom: spacing.md }}>
           Parikrama Packages
@@ -123,7 +147,8 @@ export default function PassengerHome() {
 
         <View style={styles.parikramaRow}>
           <ParikramaTile
-            title="Poochari Parikrama"
+            title="Poochari"
+            subtitle="12 km · Poochari ka Lota route"
             km={12}
             price={config?.poochari_fare}
             color={colors.primaryLight}
@@ -132,10 +157,11 @@ export default function PassengerHome() {
             testID="passenger-home-poochari-tile"
           />
           <ParikramaTile
-            title="Radhakund Parikrama"
+            title="Radhakund"
+            subtitle="7 km · Radha & Shyam Kund"
             km={7}
             price={config?.radhakund_fare}
-            color="#E8F5E9"
+            color={colors.successBg}
             iconColor={colors.success}
             onPress={() => open("radhakund")}
             testID="passenger-home-radhakund-tile"
@@ -159,9 +185,7 @@ export default function PassengerHome() {
                     MOST POPULAR
                   </TText>
                 </View>
-                <TText variant="bodyLg" weight="700" style={{ marginTop: 4 }}>
-                  Combined Parikrama
-                </TText>
+                <TText variant="bodyLg" weight="700" style={{ marginTop: 4 }}>Combined Parikrama</TText>
                 <TText variant="bodySm" muted style={{ marginTop: 2 }}>
                   Poochari + Radhakund · 19 km
                 </TText>
@@ -174,20 +198,61 @@ export default function PassengerHome() {
           </Card>
         </TouchableOpacity>
 
+        {recentRides.length > 0 && (
+          <>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.xl, marginBottom: spacing.md }}>
+              <TText variant="h3">Recent Rides</TText>
+              <TouchableOpacity onPress={() => router.push("/(passenger)/rides")} testID="passenger-home-see-all">
+                <TText variant="bodySm" weight="700" color={colors.primary}>See all</TText>
+              </TouchableOpacity>
+            </View>
+            {recentRides.map((r) => (
+              <TouchableOpacity
+                key={r.id}
+                style={styles.recentRow}
+                activeOpacity={0.85}
+                onPress={() => router.push({ pathname: "/(passenger)/booking", params: { id: r.id } })}
+              >
+                <View style={[styles.recentIcon, { backgroundColor: colors.successBg }]}>
+                  <Feather name="check-circle" size={16} color={colors.success} />
+                </View>
+                <View style={{ flex: 1, marginLeft: spacing.md }}>
+                  <TText variant="body" weight="600" numberOfLines={1}>{labelFor(r.type)}</TText>
+                  <TText variant="caption" muted>
+                    {new Date(r.completed_at || r.created_at).toLocaleDateString([], { month: "short", day: "numeric" })} · ₹{r.fare}
+                  </TText>
+                </View>
+                <Feather name="chevron-right" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function ParikramaTile({ title, km, price, color, iconColor, onPress, testID }: any) {
+function QuickTile({ icon, label, color, bg, onPress, testID }: any) {
+  return (
+    <TouchableOpacity testID={testID} style={[styles.quickTile, { backgroundColor: bg }]} onPress={onPress} activeOpacity={0.85}>
+      <View style={[styles.quickIconBox, { backgroundColor: "#FFFFFF80" }]}>
+        <Feather name={icon} size={20} color={color} />
+      </View>
+      <TText variant="bodySm" weight="700" style={{ marginTop: spacing.sm }}>{label}</TText>
+    </TouchableOpacity>
+  );
+}
+
+function ParikramaTile({ title, subtitle, price, color, iconColor, onPress, testID }: any) {
   return (
     <TouchableOpacity testID={testID} style={[styles.parikramaTile, { backgroundColor: color }]} onPress={onPress} activeOpacity={0.85}>
       <View style={[styles.bigIcon, { backgroundColor: "#FFFFFF80" }]}>
         <Feather name="compass" size={20} color={iconColor} />
       </View>
       <TText variant="bodyLg" weight="700" style={{ marginTop: spacing.md }}>{title}</TText>
-      <TText variant="bodySm" muted style={{ marginTop: 2 }}>{km} km route</TText>
+      <TText variant="caption" muted style={{ marginTop: 2 }} numberOfLines={2}>{subtitle}</TText>
       <View style={styles.parikramaPrice}>
         <TText variant="h3" color={iconColor}>₹{price ?? "—"}</TText>
       </View>
@@ -202,42 +267,57 @@ function labelFor(t: string) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: spacing.lg },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
   activeBanner: {
-    marginTop: spacing.lg,
+    marginBottom: spacing.md,
     padding: spacing.md,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: "#1A2421",
     borderRadius: radius.lg,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.primary + "40",
+    ...shadows.md,
   },
-  localTile: { borderRadius: radius.lg, overflow: "hidden", ...shadows.md },
-  localBg: { height: 180 },
-  localOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(26,36,33,0.55)",
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    justifyContent: "space-between",
+  activeIcon: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.primary,
+    alignItems: "center", justifyContent: "center",
   },
-  localCta: {
+  whereTo: {
+    flexDirection: "row", alignItems: "center",
     backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sm,
+  },
+  whereToIcon: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.bg,
+    alignItems: "center", justifyContent: "center",
+  },
+  nowChip: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: colors.bg,
+    paddingHorizontal: 10, paddingVertical: 6,
     borderRadius: radius.pill,
-    flexDirection: "row",
+  },
+  quickRow: { flexDirection: "row", gap: 10, marginTop: spacing.md },
+  quickTile: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.lg,
     alignItems: "center",
-    alignSelf: "flex-start",
+  },
+  quickIconBox: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: "center", justifyContent: "center",
   },
   parikramaRow: { flexDirection: "row", gap: 12 },
   parikramaTile: {
@@ -247,13 +327,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  bigIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  bigIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   parikramaPrice: { marginTop: spacing.md },
   starRow: { flexDirection: "row", alignItems: "center" },
+  recentRow: {
+    flexDirection: "row", alignItems: "center",
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.border,
+    marginBottom: 8,
+  },
+  recentIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 });

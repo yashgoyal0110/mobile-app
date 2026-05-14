@@ -108,7 +108,7 @@ export default function Login() {
               <TText variant="bodySm" color={colors.info} style={{ marginLeft: 6, flex: 1 }}>
                 {role === "admin"
                   ? "Dev admin: phone 9999999999, OTP 123456"
-                  : "Dev mode: use OTP 123456"}
+                  : "First time: a unique OTP will be created for your account and stay the same forever (mock SMS for dev)"}
               </TText>
             </View>
 

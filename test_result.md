@@ -338,16 +338,52 @@ frontend:
 
 metadata:
   created_by: "main_agent"
-  version: "1.1"
-  test_sequence: 2
+  version: "1.2"
+  test_sequence: 3
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Admin can update dispatch_radius_km via PATCH /admin/config/fare"
+    - "Sticky per-user OTP via phone_otps collection (auth.py)"
+    - "Tip feature: POST /api/rides/{id}/tip with 10/20/50 increment (rides.py)"
+    - "Passenger location streaming via WS forwarded to driver (ws.py)"
+    - "Name validation regex rejection in /api/auth/verify-otp"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Iteration 3 backend changes — please test the NEW behaviour:
+      
+      1) Sticky per-user OTP (auth.py)
+         - POST /api/auth/send-otp with a brand new phone (e.g. 9000010001) returns dev_otp = X
+         - Calling send-otp AGAIN for that same phone must return SAME X (read from db.phone_otps collection)
+         - Admin phone 9999999999 still returns the env MOCK_OTP (123456) — fixed admin OTP
+         - Verify-otp with the persistent X works; verify-otp with wrong code returns 400
+      
+      2) Name validation in verify-otp (auth.py)
+         - Verify-otp with name = "Rohan9" should return 400 with message containing "letters"
+         - Verify-otp with name = "@#$" should return 400
+         - Verify-otp with name = "Rohan Sharma" (valid) should succeed
+      
+      3) Tip feature (rides.py)
+         - Passenger creates a ride (no driver assigned yet) → status = requested
+         - POST /api/rides/{id}/tip {amount: 10} → fare goes up by 10, ride.tip = 10
+         - Repeat with 20 → fare goes up by 20 more, ride.tip = 30
+         - Tip 100 should return 400 (only 10/20/50 allowed)
+         - Tip after driver accepts should return 400 (only requested state)
+      
+      4) Passenger location streaming (ws.py)
+         - Passenger has active accepted ride → connect WS with passenger JWT
+         - Send {"type":"location","lat":27.5,"lng":77.45} via WS
+         - Driver (with their JWT WS) on the same ride should receive {"type":"passenger_location","ride_id":..,"lat":27.5,"lng":77.45}
+         - Persistence: GET /api/rides/{id} as driver should now include passenger_location field
+      
+      Regression: existing flows from phase 1/2/3 (geo, ratings, complaints, dashboard charts, WS dispatch, push tokens) should still pass.
+      
+      Test credentials: see /app/memory/test_credentials.md. Note OTP is sticky now — fetch the dev_otp on send-otp and reuse for verify-otp.
 
 agent_communication:
   - agent: "main"

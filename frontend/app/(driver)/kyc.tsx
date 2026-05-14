@@ -27,6 +27,10 @@ export default function DriverKYC() {
       Alert.alert("Missing info", "Please fill all fields");
       return;
     }
+    if (!/^[A-Za-z][A-Za-z .'-]{1,49}$/.test(name.trim())) {
+      Alert.alert("Invalid name", "Name should only contain letters, spaces, dots, hyphens or apostrophes — no numbers or special characters.");
+      return;
+    }
     if (!/@/.test(upiId)) {
       Alert.alert("Invalid UPI", "UPI ID must be like name@bank");
       return;
@@ -110,7 +114,15 @@ export default function DriverKYC() {
         <Card>
           {step === 0 && (
             <>
-              <TInput label="Full name (as per Aadhar)" value={name} onChangeText={setName} placeholder="Your full name" testID="kyc-name" />
+              <TInput
+                label="Full name (as per Aadhar)"
+                value={name}
+                onChangeText={(v) => setName(v.replace(/[^A-Za-z .'\-]/g, ""))}
+                placeholder="Your full name"
+                autoCapitalize="words"
+                maxLength={50}
+                testID="kyc-name"
+              />
               <TInput
                 label="Aadhar number"
                 value={aadhar}

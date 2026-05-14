@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView, Alert, TextInput, TouchableOpacity, Modal } from "react-native";
+import { View, StyleSheet, ScrollView, Alert, TextInput, TouchableOpacity, Modal, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,9 +7,11 @@ import { TText } from "../../src/components/TText";
 import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { StatusPill } from "../../src/components/StatusPill";
+import MapPicker from "../../src/components/MapPicker";
 import RateRideModal from "../../src/components/RateRideModal";
+import { useRealtimeEvent } from "../../src/realtime";
 import { api } from "../../src/api";
-import { colors, radius, spacing } from "../../src/theme";
+import { colors, radius, spacing, shadows } from "../../src/theme";
 
 const REASONS = ["Passenger not responding", "Vehicle issue", "Address incorrect", "Emergency", "Other"];
 
@@ -17,6 +19,7 @@ export default function DriverRide() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [ride, setRide] = useState<any>(null);
+  const [paxLoc, setPaxLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -29,6 +32,7 @@ export default function DriverRide() {
     try {
       const r = await api<any>(`/rides/${id}`);
       setRide(r);
+      if (r.passenger_location) setPaxLoc(r.passenger_location);
       if (r.status === "completed" && r.passenger_id && !rated) {
         setRateOpen(true);
       }
@@ -39,9 +43,20 @@ export default function DriverRide() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 3500);
+    const t = setInterval(load, 15000);
     return () => clearInterval(t);
   }, [load]);
+
+  useRealtimeEvent("passenger_location", (ev) => {
+    if (ev.ride_id === id) setPaxLoc({ lat: ev.lat, lng: ev.lng });
+  });
+  useRealtimeEvent("ride_cancelled", (ev) => { if (ev.ride_id === id) load(); });
+
+  const callPassenger = () => {
+    if (ride?.passenger_phone) {
+      Linking.openURL(`tel:${ride.passenger_phone}`).catch(() => {});
+    }
+  };
 
   const verifyPin = async () => {
     if (pinInput.length !== 4) {
@@ -122,12 +137,34 @@ export default function DriverRide() {
             <View style={styles.avatar}><Feather name="user" size={20} color={colors.primaryDark} /></View>
             <View style={{ flex: 1, marginLeft: spacing.md }}>
               <TText variant="bodyLg" weight="700">{ride.passenger_name}</TText>
-              <TText variant="bodySm" color={colors.info}>
-                <Feather name="phone" size={11} color={colors.info} /> +91 {ride.passenger_phone}
-              </TText>
+              <TText variant="bodySm" muted>+91 {ride.passenger_phone}</TText>
             </View>
+            <TouchableOpacity onPress={callPassenger} style={styles.callBtn} testID="driver-call-passenger">
+              <Feather name="phone" size={18} color="#fff" />
+            </TouchableOpacity>
           </View>
         </Card>
+
+        {/* Live passenger location map (after accept) */}
+        {paxLoc && ride.pickup && ["accepted", "started"].includes(ride.status) && (
+          <Card style={{ padding: 0, overflow: "hidden", marginTop: spacing.md }}>
+            <MapPicker
+              pickup={ride.pickup}
+              drop={ride.drop || null}
+              mode="pickup"
+              onChange={() => {}}
+              height={220}
+              driverLocation={paxLoc}
+              trackingOnly
+            />
+            <View style={styles.mapBar}>
+              <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
+              <TText variant="bodySm" weight="700" color={colors.primaryDark} style={{ marginLeft: 8, flex: 1 }}>
+                {ride.status === "started" ? "Passenger is in your e-rickshaw" : "Passenger waiting at pickup"}
+              </TText>
+            </View>
+          </Card>
+        )}
 
         {ride.pickup && ride.drop && (
           <Card style={{ marginTop: spacing.md }}>
@@ -260,6 +297,15 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: "row", alignItems: "center", padding: spacing.lg },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.primaryLight, alignItems: "center", justifyContent: "center" },
+  callBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.success, alignItems: "center", justifyContent: "center", ...shadows.sm },
+  mapBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+  },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
   routeItem: { flexDirection: "row", alignItems: "center" },
   routeLine: { width: 2, height: 18, backgroundColor: colors.border, marginLeft: 5, marginVertical: 6 },
   dot: { width: 12, height: 12, borderRadius: 6 },
