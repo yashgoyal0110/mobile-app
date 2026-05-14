@@ -54,6 +54,7 @@ async def verify_otp(req: VerifyOtpReq):
 
     user = await db.users.find_one({"phone": phone})
     is_new = False
+    admin_phone_list = [p.strip() for p in ADMIN_PHONES]
     if user:
         if user["role"] != req.role:
             raise HTTPException(403, f"This phone is registered as {user['role']}")
@@ -73,32 +74,47 @@ async def verify_otp(req: VerifyOtpReq):
             user["ride_pin"] = pin
     else:
         if req.role == "admin":
-            raise HTTPException(403, "Admin phones must be pre-seeded")
-        is_new = True
-        name = (req.name or "").strip()
-        if not name:
-            return {"requires_name": True, "is_new_user": True}
-        if not _is_valid_name(name):
-            raise HTTPException(400, "Name should only contain letters, spaces, dots, hyphens, or apostrophes")
-        user = {
-            "id": new_id(),
-            "phone": phone,
-            "name": name,
-            "role": req.role,
-            "ride_pin": gen_pin(),  # sticky PIN reused for every ride this user books
-            "created_at": now(),
-        }
-        await db.users.insert_one(user)
-        if req.role == "driver":
-            await db.drivers.insert_one({
+            # If this phone is authorised as admin in env config but no user
+            # record exists yet, auto-seed it on first OTP verify so an admin
+            # never gets locked out by a missing seed run.
+            if phone not in admin_phone_list:
+                raise HTTPException(403, "This phone is not registered as admin")
+            user = {
                 "id": new_id(),
-                "user_id": user["id"],
-                "kyc_status": "not_submitted",
-                "online": False,
-                "earnings_total": 0.0,
-                "earnings_withdrawn": 0.0,
+                "phone": phone,
+                "name": "TirthRide Admin",
+                "role": "admin",
+                "ride_pin": gen_pin(),
                 "created_at": now(),
-            })
+            }
+            await db.users.insert_one(user)
+            is_new = True
+        else:
+            is_new = True
+            name = (req.name or "").strip()
+            if not name:
+                return {"requires_name": True, "is_new_user": True}
+            if not _is_valid_name(name):
+                raise HTTPException(400, "Name should only contain letters, spaces, dots, hyphens, or apostrophes")
+            user = {
+                "id": new_id(),
+                "phone": phone,
+                "name": name,
+                "role": req.role,
+                "ride_pin": gen_pin(),  # sticky PIN reused for every ride this user books
+                "created_at": now(),
+            }
+            await db.users.insert_one(user)
+            if req.role == "driver":
+                await db.drivers.insert_one({
+                    "id": new_id(),
+                    "user_id": user["id"],
+                    "kyc_status": "not_submitted",
+                    "online": False,
+                    "earnings_total": 0.0,
+                    "earnings_withdrawn": 0.0,
+                    "created_at": now(),
+                })
 
     OTP_STORE.pop(phone, None)
     token = make_token(user["id"], user["role"])

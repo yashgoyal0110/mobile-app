@@ -106,9 +106,24 @@ export default function Login() {
             <View style={styles.devNote}>
               <Feather name="info" size={14} color={colors.info} />
               <TText variant="bodySm" color={colors.info} style={{ marginLeft: 6, flex: 1 }}>
-                Dev mode: use OTP 123456 (mock SMS)
+                {role === "admin"
+                  ? "Admin phone: 9999999999 · OTP: 123456 (dev mock)"
+                  : "Dev mode: use OTP 123456 (mock SMS)"}
               </TText>
             </View>
+            {role === "admin" && phone !== "9999999999" && (
+              <TouchableOpacity
+                onPress={() => setPhone("9999999999")}
+                style={styles.adminPrefill}
+                testID="login-admin-prefill"
+                activeOpacity={0.85}
+              >
+                <Feather name="shield" size={14} color={colors.primaryDark} />
+                <TText variant="bodySm" weight="700" color={colors.primaryDark} style={{ marginLeft: 6 }}>
+                  Use admin phone (9999999999)
+                </TText>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={runConnectionTest}
@@ -175,5 +190,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  adminPrefill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.primary + "40",
   },
 });
