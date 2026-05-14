@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TText } from "../src/components/TText";
 import { TInput } from "../src/components/TInput";
 import { TButton } from "../src/components/TButton";
-import { api } from "../src/api";
+import { api, BASE } from "../src/api";
 import { colors, radius, spacing } from "../src/theme";
 
 export default function Login() {
@@ -15,6 +15,8 @@ export default function Login() {
   const role = (params.role as "passenger" | "driver" | "admin") || "passenger";
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const send = async () => {
     if (phone.length !== 10) {
@@ -30,9 +32,24 @@ export default function Login() {
       });
       router.push({ pathname: "/otp", params: { phone, role, dev: res.dev_otp } });
     } catch (e: any) {
-      Alert.alert("Failed", e.message || "Could not send OTP");
+      Alert.alert("Failed to send OTP", e.message || "Could not send OTP");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runConnectionTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const t0 = Date.now();
+      await api<any>("/", { auth: false, timeoutMs: 12000, retries: 0 });
+      const ms = Date.now() - t0;
+      setTestResult(`✅ Server reachable (${ms}ms)\n${BASE}`);
+    } catch (e: any) {
+      setTestResult(`❌ ${e.message || "Failed"}\nURL: ${BASE}`);
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -94,6 +111,25 @@ export default function Login() {
                   : "Dev mode: use OTP 123456"}
               </TText>
             </View>
+
+            <TouchableOpacity
+              onPress={runConnectionTest}
+              disabled={testing}
+              style={styles.testBtn}
+              testID="login-conn-test"
+            >
+              <Feather name="activity" size={14} color={colors.textMuted} />
+              <TText variant="bodySm" muted style={{ marginLeft: 6 }}>
+                {testing ? "Testing connection..." : "Test server connection"}
+              </TText>
+            </TouchableOpacity>
+            {testResult && (
+              <View style={styles.testResult}>
+                <TText variant="caption" style={{ color: testResult.startsWith("✅") ? colors.success : colors.error }}>
+                  {testResult}
+                </TText>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -122,5 +158,24 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.infoBg,
     borderRadius: radius.md,
+  },
+  testBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  testResult: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.bg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 });

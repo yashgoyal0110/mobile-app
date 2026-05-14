@@ -42,10 +42,8 @@ function wsUrlFor(token: string): string | null {
   let base = process.env.EXPO_PUBLIC_BACKEND_URL || "";
   if (!base) return null;
   base = base.replace(/\/$/, "");
-  // Same internal-hostname swap as api.ts on native to avoid the K8s 307 redirect.
-  if (Platform.OS !== "web" && base.includes(".preview.emergentagent.com") && !base.includes(".internal.")) {
-    base = base.replace(".preview.emergentagent.com", ".internal.preview.emergentagent.com");
-  }
+  // Always use the public Cloudflare-fronted hostname. The "internal"
+  // hostname is on a private IP and not reachable from external devices.
   const url = base.replace(/^http/, "ws");
   return `${url}/api/ws?token=${encodeURIComponent(token)}`;
 }
