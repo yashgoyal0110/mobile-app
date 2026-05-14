@@ -238,27 +238,93 @@ backend:
 
   - task: "Ratings & complaints (Phase 3)"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routes/ratings.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "POST /api/rides/{id}/rate (1-5 stars + comment, idempotent — re-rating updates the row), GET /api/rides/{id}/ratings, POST /api/rides/{id}/complaint (9 categories), GET /api/users/{id}/rating, GET /api/admin/complaints (filterable by status), PATCH /api/admin/complaints/{id} resolve/reject. Aggregate rating auto-recomputed on user + driver doc."
+      - working: true
+        agent: "testing"
+        comment: "Iter4 regression: POST /rides/{id}/rate with 5 stars returns rating doc; POST /rides/{id}/complaint creates complaint; GET /admin/complaints returns list with joined ride context."
 
   - task: "Admin reports — timeseries, leaderboard, top routes (Phase 3)"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routes/admin.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "GET /api/admin/reports/timeseries?days=N → per-day rides + revenue + cancellation. GET /api/admin/reports/leaderboard → top drivers by earnings (joined with user + driver doc, includes avg_rating). GET /api/admin/reports/top-routes → most popular pickup→drop pairs (local rides). open_complaints added to /api/admin/dashboard."
+      - working: true
+        agent: "testing"
+        comment: "Iter4 regression: /admin/dashboard returns total_rides + active_drivers + open_complaints; /admin/reports/timeseries?days=7 returns 7-row series."
+
+  - task: "Login OTP global mock 123456 for all phones (iter4 revert)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "send-otp returns dev_otp='123456' for admin 9999999999, driver 9000000001, passenger 9000000002, and brand-new phone. verify-otp with 123456 succeeds for all four. No more sticky/per-phone OTP variation — reverted as user clarified."
+
+  - task: "Sticky per-passenger RIDE PIN (users.ride_pin)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/auth.py and /app/backend/app/routes/rides.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Verified end-to-end: new passenger signup returns user.ride_pin=4-digit string (P1='4266'). Same passenger creates Ride#1,#2,#3 with different pickups/drops — every response.pin === P1 (NOT regenerated). Another passenger gets P2='4800' (distinct). PIN flow still works: driver accepts Ride#1, POST /rides/{id}/verify-pin {pin: P1} → 200, status='started'. Legacy back-fill verified — manually unsetting ride_pin via motor then re-login causes verify-otp to backfill a new sticky PIN ('9435'). Also backfilled at ride creation time if still missing (rides.py line 65-68)."
+
+  - task: "Tip feature POST /api/rides/{id}/tip (10/20/50)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/rides.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Validated all 7 acceptance criteria. F0=96.0 baseline → tip 10 → fare=106, tip=10, commission=10.6, driver_earning=95.4 (recomputed). tip 20 cumulative → fare=126, tip=30. tip 50 → fare=176, tip=80. tip 100 → 400. Tip by non-owner passenger → 404. Tip after driver accepts → 400 (only allowed in 'requested')."
+
+  - task: "Name validation regex in verify-otp"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Validated: name='Rohan9' → 400 with 'letters' in message; '@#$' → 400; valid 'Rohan Sharma' → 200 with access_token; no name field for new user → {requires_name:true, is_new_user:true} (200, OTP not consumed); legacy user (name unset via mongo) → requires_name=true with is_new_user=false."
+
+  - task: "Passenger location streaming via WebSocket"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routes/ws.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Setup: passenger creates ride, driver accepts (status=accepted). Both connect WS (ws://localhost:8001/api/ws?token=<jwt>; preview wss still 307s). Passenger sends {type:'location',lat:27.5,lng:77.45}; driver receives {type:'passenger_location', ride_id, lat, lng} within <1s. GET /rides/{id} as driver afterwards returns passenger_location={lat,lng}. Persisted on the ride doc as passenger_lat/passenger_lng."
 
 frontend:
   - task: "Map-based location picker (Leaflet + OSM)"
@@ -338,52 +404,69 @@ frontend:
 
 metadata:
   created_by: "main_agent"
-  version: "1.2"
-  test_sequence: 3
+  version: "1.3"
+  test_sequence: 4
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Sticky per-user OTP via phone_otps collection (auth.py)"
-    - "Tip feature: POST /api/rides/{id}/tip with 10/20/50 increment (rides.py)"
-    - "Passenger location streaming via WS forwarded to driver (ws.py)"
-    - "Name validation regex rejection in /api/auth/verify-otp"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "testing"
+    message: |
+      Iter4 backend validation COMPLETE — 41/42 PASS. Test script: /app/backend_test_iter4.py.
+
+      ✅ A) Login OTP reverted to global mock 123456 — send-otp + verify-otp work for admin (9999999999), driver (9000000001), passenger (9000000002), and brand-new phones. No sticky/phone-specific OTP behaviour remains.
+      ✅ B) Sticky per-passenger RIDE PIN — signup returns user.ride_pin (4 digits, P1). 3 successive rides with different pickups all return ride.pin === P1 (NOT regenerated). Different passenger gets distinct P2. verify-pin flow works (driver accepts → POST /rides/{id}/verify-pin {pin:P1} → 200, status='started'). Legacy back-fill verified via motor: unset ride_pin then re-login → verify-otp inserts a fresh sticky PIN. Also back-filled at ride creation time in rides.py:65-68.
+      ✅ C) Name validation — 'Rohan9' → 400 with 'letters' message; '@#$' → 400; 'Rohan Sharma' → 200 with token; no name field → {requires_name:true, is_new_user:true} (OTP not consumed); legacy user (name unset) → requires_name=true with is_new_user=false.
+      ✅ D) Tip feature — Baseline F0=96. tip 10 → fare=106, tip=10, commission/driver_earning recomputed. tip 20 cumulative → fare=126, tip=30. tip 50 → fare=176, tip=80. tip 100 → 400. Non-owner passenger → 404. After driver accepts → 400 (state guard).
+      ✅ E) Passenger location WS — passenger sends {type:'location',lat:27.5,lng:77.45}; driver receives {type:'passenger_location', ride_id, lat, lng} <1s. Persisted on ride doc (passenger_lat/lng); GET /rides/{id} as driver returns passenger_location.
+      ✅ F) Regression — WS dispatch (ride_requested), accept (ride_accepted + ride_taken), driver location forwarding (driver_location), ratings, complaints (create + admin list), /admin/dashboard, /admin/reports/timeseries — ALL PASS.
+
+      ⚠️ MINOR (NOT a backend bug):
+      /api/geo/search?q=govardhan returned `{results: []}` because upstream nominatim.openstreetmap.org is returning HTTP 429 to this datacenter IP (public OSM Nominatim rate-limit policy for shared cloud IPs). Backend correctly catches the exception and returns the documented empty-list fallback. /api/geo/route OSRM still works (returned distance_km=4.98, 166-point polyline). Recommendation for production: self-host nominatim, use Photon, or switch to Google provider (already a code path).
+
+      NOTE on testing infra:
+      - REST: preview URL `https://govardhan-erickshaw.preview.emergentagent.com/api` returns 307 to `.internal.preview.emergentagent.com`, and httpx (with follow_redirects=True) drops Authorization header on cross-origin hops. Test script hits the internal preview URL directly to avoid the redirect. Functionality is identical.
+      - WebSocket: preview wss still 307s — using ws://localhost:8001/api/ws?token=<jwt> as before. Mobile/production clients via wss://preview should still work assuming ingress nginx has Upgrade headers (previous note from phase-2 testing applies).
+
   - agent: "main"
     message: |
-      Iteration 3 backend changes — please test the NEW behaviour:
+      Iteration 4 — please validate the following backend behaviour (login OTP is back to global mock 123456 for ALL phones; the user clarified that "sticky OTP" was meant for ride PIN, not login OTP):
       
-      1) Sticky per-user OTP (auth.py)
-         - POST /api/auth/send-otp with a brand new phone (e.g. 9000010001) returns dev_otp = X
-         - Calling send-otp AGAIN for that same phone must return SAME X (read from db.phone_otps collection)
-         - Admin phone 9999999999 still returns the env MOCK_OTP (123456) — fixed admin OTP
-         - Verify-otp with the persistent X works; verify-otp with wrong code returns 400
+      1) Sticky per-passenger RIDE PIN
+         - Brand new passenger signup: verify-otp creates user, response includes user.ride_pin = some 4-digit string. Save P1.
+         - Same passenger creates 3 rides → every ride.pin must equal P1 (NOT a fresh one).
+         - Verify pin on ride 2 / ride 3 using P1 — should succeed.
+         - Different passenger has a different ride_pin.
+         - Legacy account (no ride_pin in db) — after they login once, ride_pin gets backfilled.
       
-      2) Name validation in verify-otp (auth.py)
-         - Verify-otp with name = "Rohan9" should return 400 with message containing "letters"
-         - Verify-otp with name = "@#$" should return 400
-         - Verify-otp with name = "Rohan Sharma" (valid) should succeed
+      2) Login OTP returned to mock `123456` for ALL phones (admin + non-admin). Just confirm send-otp returns `dev_otp: "123456"` for any phone.
       
-      3) Tip feature (rides.py)
-         - Passenger creates a ride (no driver assigned yet) → status = requested
+      3) Name validation (still active)
+         - verify-otp with name "Rohan9" → 400
+         - verify-otp with name "@#$" → 400
+         - verify-otp with name "Rohan Sharma" → 200
+      
+      4) Tip feature (rides.py)
+         - Passenger creates a ride → status = requested
          - POST /api/rides/{id}/tip {amount: 10} → fare goes up by 10, ride.tip = 10
-         - Repeat with 20 → fare goes up by 20 more, ride.tip = 30
-         - Tip 100 should return 400 (only 10/20/50 allowed)
-         - Tip after driver accepts should return 400 (only requested state)
+         - amount 20 again → fare goes up by 20, ride.tip = 30
+         - amount 100 → 400
+         - After driver accepts → tip endpoint returns 400
       
-      4) Passenger location streaming (ws.py)
-         - Passenger has active accepted ride → connect WS with passenger JWT
-         - Send {"type":"location","lat":27.5,"lng":77.45} via WS
-         - Driver (with their JWT WS) on the same ride should receive {"type":"passenger_location","ride_id":..,"lat":27.5,"lng":77.45}
-         - Persistence: GET /api/rides/{id} as driver should now include passenger_location field
+      5) Passenger location streaming (ws.py)
+         - Passenger has active accepted ride
+         - Passenger sends {type:"location", lat, lng} via WS
+         - Driver WS receives {type:"passenger_location", ride_id, lat, lng}
+         - GET /api/rides/{id} as driver includes passenger_location field
       
-      Regression: existing flows from phase 1/2/3 (geo, ratings, complaints, dashboard charts, WS dispatch, push tokens) should still pass.
+      Regression: existing flows from phase 1/2/3 should still pass (geo, ratings, complaints, dashboard charts, WS dispatch, push tokens, ride lifecycle).
       
-      Test credentials: see /app/memory/test_credentials.md. Note OTP is sticky now — fetch the dev_otp on send-otp and reuse for verify-otp.
+      Test credentials: /app/memory/test_credentials.md (login OTP for ALL phones = 123456).
 
 agent_communication:
   - agent: "main"

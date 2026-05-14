@@ -164,7 +164,7 @@ export default function OtpScreen() {
                   <View style={styles.devHint}>
                     <Feather name="key" size={14} color={colors.info} />
                     <TText variant="bodySm" color={colors.info} style={{ marginLeft: 6 }}>
-                      Your OTP is {params.dev} (sticky per account)
+                      Dev OTP: {params.dev}
                     </TText>
                   </View>
                 ) : null}

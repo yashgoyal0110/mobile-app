@@ -1,13 +1,10 @@
 """Auth routes.
 
-OTP behaviour:
-- Each phone gets a sticky 6-digit OTP that is generated once on the very first
-  `send-otp` call and persists forever in the `phone_otps` collection.
-- Admin phones use the env-configured MOCK_OTP for predictability in dev.
-- Re-requesting OTP for the same phone always returns the same code.
+Login OTP is mocked (env `MOCK_OTP`, default `123456`) for dev. Each user is
+assigned a sticky 4-digit `ride_pin` on first signup which is reused for every
+ride they book (so the passenger always shares the same PIN with drivers).
 """
 import re
-import random
 from datetime import timedelta
 from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, Depends
@@ -17,12 +14,12 @@ from ..config import ADMIN_PHONES, MOCK_OTP
 from ..db import db
 from ..deps import get_current_user, make_token
 from ..models import SendOtpReq, VerifyOtpReq
-from ..utils import now, new_id, clean
+from ..utils import now, new_id, clean, gen_pin
 
 logger = logging.getLogger("tirthride.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# In-memory active OTP store keyed by phone — controls expiry of an OTP session
+# In-memory OTP store (phone -> {otp, expires_at}) — login OTPs are NOT sticky
 OTP_STORE: Dict[str, Dict[str, Any]] = {}
 
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z .'\-]{1,49}$")
@@ -32,23 +29,6 @@ def _is_valid_name(value: str) -> bool:
     return bool(NAME_RE.match(value.strip()))
 
 
-async def _sticky_otp_for(phone: str) -> str:
-    """Return the persistent OTP for a phone, generating once on first use."""
-    # Admin always uses the MOCK_OTP so devs/admin testers have a known code
-    if phone in [p.strip() for p in ADMIN_PHONES]:
-        return MOCK_OTP
-    rec = await db.phone_otps.find_one({"phone": phone})
-    if rec and rec.get("otp"):
-        return rec["otp"]
-    # Generate a new random 6-digit OTP that doesn't collide with reserved codes
-    while True:
-        code = f"{random.randint(0, 999999):06d}"
-        if code != "000000":
-            break
-    await db.phone_otps.insert_one({"phone": phone, "otp": code, "created_at": now()})
-    return code
-
-
 @router.post("/send-otp")
 async def send_otp(req: SendOtpReq):
     phone = req.phone.strip()
@@ -56,11 +36,9 @@ async def send_otp(req: SendOtpReq):
         raise HTTPException(400, "Phone must be 10 digits")
     if req.role == "admin" and phone not in [p.strip() for p in ADMIN_PHONES]:
         raise HTTPException(403, "This phone is not registered as admin")
-    code = await _sticky_otp_for(phone)
-    OTP_STORE[phone] = {"otp": code, "expires_at": now() + timedelta(minutes=10)}
-    logger.info(f"OTP for {phone}: {code}")
-    # `dev_otp` is shown in dev mode so testers can sign in without SMS
-    return {"message": "OTP sent", "dev_otp": code}
+    OTP_STORE[phone] = {"otp": MOCK_OTP, "expires_at": now() + timedelta(minutes=5)}
+    logger.info(f"OTP for {phone}: {MOCK_OTP}")
+    return {"message": "OTP sent", "dev_otp": MOCK_OTP}
 
 
 @router.post("/verify-otp")
@@ -88,6 +66,11 @@ async def verify_otp(req: VerifyOtpReq):
                 raise HTTPException(400, "Name should only contain letters, spaces, dots, hyphens, or apostrophes")
             await db.users.update_one({"id": user["id"]}, {"$set": {"name": name}})
             user["name"] = name
+        # Backfill ride_pin for legacy accounts
+        if not user.get("ride_pin"):
+            pin = gen_pin()
+            await db.users.update_one({"id": user["id"]}, {"$set": {"ride_pin": pin}})
+            user["ride_pin"] = pin
     else:
         if req.role == "admin":
             raise HTTPException(403, "Admin phones must be pre-seeded")
@@ -102,6 +85,7 @@ async def verify_otp(req: VerifyOtpReq):
             "phone": phone,
             "name": name,
             "role": req.role,
+            "ride_pin": gen_pin(),  # sticky PIN reused for every ride this user books
             "created_at": now(),
         }
         await db.users.insert_one(user)

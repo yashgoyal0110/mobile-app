@@ -60,7 +60,12 @@ async def create_ride(req: CreateRideReq, user: dict = Depends(require_role("pas
     cfg = await db.fare_config.find_one({"id": "default"}) or {}
     fare = calc_fare(req.type, req.distance_km, cfg)
     commission = round(fare * cfg["commission_pct"] / 100, 2)
-    pin = gen_pin()
+    # Sticky per-passenger PIN: every ride this passenger books uses the SAME
+    # PIN they were assigned on signup. Backfill if missing (legacy accounts).
+    pin = user.get("ride_pin")
+    if not pin:
+        pin = gen_pin()
+        await db.users.update_one({"id": user["id"]}, {"$set": {"ride_pin": pin}})
     scheduled_at = None
     if req.scheduled_at:
         try:

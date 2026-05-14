@@ -1,27 +1,53 @@
 /**
- * TirthRide design tokens — mapped from /app/design_guidelines.json
+ * TirthRide design tokens — polished ride-booking-app palette.
+ *
+ * Saffron primary (Govardhan identity) + Uber-style deep ink "dark" hero
+ * surfaces + clean off-white background + crisp borders. Used app-wide.
  */
 export const colors = {
-  primary: "#E68A00",
-  primaryLight: "#FFF4E5",
-  primaryDark: "#B36B00",
-  bg: "#FAFAF5",
+  // Primary — energetic saffron, used for CTAs, brand surfaces, callouts
+  primary: "#F26B1F",
+  primaryLight: "#FFF1E6",
+  primaryLighter: "#FFE3CD",
+  primaryDark: "#C24E0A",
+
+  // Dark — used for hero banners / cards (Uber/Ola/Rapido-style)
+  dark: "#0E0F12",
+  darkSurface: "#1A1B20",
+  darkBorder: "#2A2C32",
+  darkMuted: "#9CA0A8",
+
+  // Surfaces
+  bg: "#F7F6F2",
+  bgAlt: "#EEEDE7",
   surface: "#FFFFFF",
-  text: "#1A2421",
-  textMuted: "#5C6B66",
+  surfaceAlt: "#FAFAF6",
+
+  // Text
+  text: "#0E0F12",
+  textMuted: "#5F6469",
+  textSubtle: "#8A8F95",
   textInverse: "#FFFFFF",
-  border: "#EAEAE3",
-  success: "#287D3C",
-  successBg: "#E8F5E9",
-  error: "#DA3633",
-  errorBg: "#FFEBEE",
-  warning: "#F57C00",
-  warningBg: "#FFF9C4",
-  parikrama: "#8D4E24",
-  online: "#4CAF50",
-  offline: "#9E9E9E",
-  info: "#1565C0",
-  infoBg: "#E3F2FD",
+
+  // Borders
+  border: "#EEEDE6",
+  borderStrong: "#D8D6CC",
+
+  // Status
+  success: "#1E8E3E",
+  successBg: "#E7F4EA",
+  error: "#D93025",
+  errorBg: "#FCE8E6",
+  warning: "#F2A60C",
+  warningBg: "#FEF3D8",
+  info: "#1A73E8",
+  infoBg: "#E8F0FE",
+
+  // Brand accents
+  parikrama: "#A35A28",
+  parikramaBg: "#FFF5E1",
+  online: "#1E8E3E",
+  offline: "#9AA0A6",
 };
 
 export const spacing = {
@@ -35,44 +61,72 @@ export const spacing = {
 
 export const radius = {
   sm: 8,
-  md: 12,
-  lg: 16,
+  md: 14,
+  lg: 20,
+  xl: 28,
   pill: 9999,
-  sheet: 24,
+  sheet: 28,
 };
 
 export const shadows = {
   sm: {
-    shadowColor: "#1A2421",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     elevation: 2,
   },
   md: {
-    shadowColor: "#1A2421",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  lg: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  // Subtle dark glow used on hero cards
+  glowPrimary: {
+    shadowColor: "#F26B1F",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
   },
 };
 
 export const typography = {
-  h1: { fontSize: 32, lineHeight: 40, fontWeight: "800" as const, color: colors.text, letterSpacing: -0.5 },
-  h2: { fontSize: 24, lineHeight: 32, fontWeight: "700" as const, color: colors.text, letterSpacing: -0.3 },
-  h3: { fontSize: 20, lineHeight: 28, fontWeight: "600" as const, color: colors.text },
-  bodyLg: { fontSize: 18, lineHeight: 26, fontWeight: "500" as const, color: colors.text },
-  body: { fontSize: 16, lineHeight: 24, fontWeight: "400" as const, color: colors.text },
-  bodySm: { fontSize: 14, lineHeight: 20, fontWeight: "500" as const, color: colors.text },
-  caption: { fontSize: 12, lineHeight: 16, fontWeight: "600" as const, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" as const },
+  // Display — used for big standalone numbers (fare, OTP digits)
+  display: { fontSize: 40, lineHeight: 48, fontWeight: "800" as const, color: colors.text, letterSpacing: -1 },
+  h1: { fontSize: 30, lineHeight: 38, fontWeight: "800" as const, color: colors.text, letterSpacing: -0.6 },
+  h2: { fontSize: 24, lineHeight: 32, fontWeight: "800" as const, color: colors.text, letterSpacing: -0.4 },
+  h3: { fontSize: 18, lineHeight: 26, fontWeight: "700" as const, color: colors.text },
+  bodyLg: { fontSize: 17, lineHeight: 24, fontWeight: "600" as const, color: colors.text },
+  body: { fontSize: 15, lineHeight: 22, fontWeight: "500" as const, color: colors.text },
+  bodySm: { fontSize: 13, lineHeight: 18, fontWeight: "500" as const, color: colors.text },
+  caption: { fontSize: 11, lineHeight: 14, fontWeight: "700" as const, color: colors.textMuted, letterSpacing: 0.8, textTransform: "uppercase" as const },
+  label: { fontSize: 12, lineHeight: 16, fontWeight: "700" as const, color: colors.text, letterSpacing: 0.3 },
 };
 
 export const STATUS_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
-  requested: { bg: colors.warningBg, fg: "#F57F17", label: "Searching driver" },
+  requested: { bg: colors.warningBg, fg: "#A36B00", label: "Searching driver" },
   scheduled: { bg: colors.infoBg, fg: colors.info, label: "Scheduled" },
-  accepted: { bg: colors.infoBg, fg: colors.info, label: "Driver assigned" },
-  started: { bg: colors.primaryLight, fg: colors.primaryDark, label: "On the way" },
+  accepted: { bg: colors.primaryLight, fg: colors.primaryDark, label: "Driver assigned" },
+  started: { bg: colors.successBg, fg: colors.success, label: "On the way" },
   completed: { bg: colors.successBg, fg: colors.success, label: "Completed" },
   cancelled: { bg: colors.errorBg, fg: colors.error, label: "Cancelled" },
+};
+
+/** Quick helper for tinted alpha overlays (e.g., overlays on dark images). */
+export const alpha = (hex: string, a: number) => {
+  // expects #RRGGBB
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
 };
