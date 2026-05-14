@@ -39,9 +39,14 @@ Notifications.setNotificationHandler({
 });
 
 function wsUrlFor(token: string): string | null {
-  const base = process.env.EXPO_PUBLIC_BACKEND_URL || "";
+  let base = process.env.EXPO_PUBLIC_BACKEND_URL || "";
   if (!base) return null;
-  const url = base.replace(/^http/, "ws").replace(/\/$/, "");
+  base = base.replace(/\/$/, "");
+  // Same internal-hostname swap as api.ts on native to avoid the K8s 307 redirect.
+  if (Platform.OS !== "web" && base.includes(".preview.emergentagent.com") && !base.includes(".internal.")) {
+    base = base.replace(".preview.emergentagent.com", ".internal.preview.emergentagent.com");
+  }
+  const url = base.replace(/^http/, "ws");
   return `${url}/api/ws?token=${encodeURIComponent(token)}`;
 }
 
