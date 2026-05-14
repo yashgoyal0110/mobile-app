@@ -468,6 +468,19 @@ agent_communication:
       
       Test credentials: /app/memory/test_credentials.md (login OTP for ALL phones = 123456).
 
+  - agent: "testing"
+    message: |
+      Iteration 4 backend validation — 41/42 PASS. /app/backend_test_iter4.py created.
+      
+      A) Login OTP mock 123456 — ✅ admin/driver/passenger/new phones all return `dev_otp:"123456"`; verify with 123456 succeeds.
+      B) Sticky per-passenger ride PIN — ✅ Signup returns user.ride_pin (P1). 3 successive rides keep pin === P1. Different passenger gets different PIN. PIN flow works (verify-pin(P1) starts ride). Legacy backfill verified via motor (unset → re-login backfills).
+      C) Name validation — ✅ "Rohan9" → 400 with "letters"; "@#$" → 400; "Rohan Sharma" → 200; no name → requires_name:true (OTP not consumed); legacy user without name → requires_name:true.
+      D) Tip feature — ✅ Baseline F0=96. Cumulative tip 10/20/50: fare 106→126→176, tip 10→30→80, commission/driver_earning recomputed. tip 100 → 400. Non-owner → 404. After accept → 400.
+      E) Passenger WS location — ✅ Forwarded to driver in <1s with ride_id. GET /rides/{id} as driver returns passenger_location persisted on ride doc.
+      F) Regression — ✅ ride_requested/accepted/taken broadcast, driver_location, /geo/route polyline (166pts, 4.98km), ratings, complaints CRUD, admin dashboard + timeseries.
+      
+      ONLY ISSUE (non-blocking, upstream): /api/geo/search?q=govardhan returns empty because Nominatim rate-limits the cloud datacenter IP with HTTP 429. Backend gracefully returns empty array (correct fallback). For production: self-host Nominatim, switch to Photon/Google.
+
 agent_communication:
   - agent: "main"
     message: |
