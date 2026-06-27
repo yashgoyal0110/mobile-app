@@ -28,7 +28,15 @@ import { TemplesModule } from './modules/temples/temples.module';
     ConfigModule.forRoot({ isGlobal: true }),
     // Structured request + application logging (pino). Global.
     AppLoggerModule,
-    MongooseModule.forRoot(MONGO_URL, { dbName: DB_NAME }),
+    // autoIndex/autoCreate off: index management is owned solely by
+    // SeedService.ensureIndexes(). This stops Mongoose from auto-building a
+    // (non-unique) `id_1` that would collide with the seed's unique `id_1`, and
+    // avoids per-boot index churn in production.
+    MongooseModule.forRoot(MONGO_URL, {
+      dbName: DB_NAME,
+      autoIndex: false,
+      autoCreate: false,
+    }),
     DatabaseModule,
     CommonModule,
     RealtimeModule,
