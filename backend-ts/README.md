@@ -39,10 +39,20 @@ Point the app at it:
 EXPO_PUBLIC_BACKEND_URL=http://<your-lan-ip>:3002
 ```
 
-## Deploy / redeploy on a VM (Docker)
+## Deploy / redeploy on a VM (Docker + Atlas)
 
-The `docker-compose.yml` runs two containers: the API (published on **:3002**)
-and its own MongoDB (kept private, data persisted in the `mongo_data` volume).
+`docker-compose.yml` runs a single container — the API, published on **:3002** —
+backed by a hosted **MongoDB Atlas** cluster (no database container to run or
+back up). The Atlas URI and secrets come from `.env`.
+
+### One-time Atlas setup
+
+1. In Atlas → **Network Access**, allowlist the VM's public IP (or `0.0.0.0/0`
+   for a quick demo — tighten later).
+2. In Atlas → **Database Access**, create a DB user; note its username/password.
+3. Grab the connection string (**Connect → Drivers**):
+   `mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/?retryWrites=true&w=majority`
+   — URL-encode any special chars in the password (`@`→`%40`, `:`→`%3A`, `/`→`%2F`).
 
 ### First deploy
 
@@ -50,9 +60,9 @@ and its own MongoDB (kept private, data persisted in the `mongo_data` volume).
 # 1. Get the code onto the VM (git clone, scp, rsync — your choice), then:
 cd backend-ts
 
-# 2. Configure secrets. At minimum set a real JWT_SECRET and your ADMIN_PHONES.
+# 2. Configure. Set the Atlas MONGO_URL, a real JWT_SECRET, and your ADMIN_PHONES.
 cp .env.example .env
-nano .env          # JWT_SECRET=... ADMIN_PHONES=98xxxxxxxx  (MONGO_URL is set by compose)
+nano .env          # MONGO_URL=mongodb+srv://...   JWT_SECRET=...   ADMIN_PHONES=98xxxxxxxx
 
 # 3. Build + start in the background.
 docker compose up -d --build
@@ -62,23 +72,26 @@ curl http://localhost:3002/api/health        # -> {"status":"ok","db":true}
 docker compose logs -f api                    # watch boot / seed logs
 ```
 
+`{"db":true}` confirms Atlas connectivity. If it says `false`, the VM IP is most
+likely not allowlisted in Atlas Network Access, or the password isn't URL-encoded.
+
 Open port **3002** on the VM firewall / cloud security group so the app can reach it.
 Then set `EXPO_PUBLIC_BACKEND_URL=http://<vm-public-ip>:3002` in the frontend.
 
 > Put a TLS reverse proxy (Caddy / nginx) in front for HTTPS in production —
-> e.g. proxy `api.yourdomain.com` → `127.0.0.1:3002`. Mongo data survives
-> redeploys via the named volume; it is **not** published to the internet.
+> e.g. proxy `api.yourdomain.com` → `127.0.0.1:3002`. There's no local DB to
+> manage — Atlas owns the data.
 
 ### Redeploy (after pulling new code)
 
 ```bash
 cd backend-ts
 git pull                         # or however you ship new code
-docker compose up -d --build     # rebuilds the image, recreates only what changed
+docker compose up -d --build     # rebuilds the image, recreates the container
 ```
 
-`--build` recompiles the TypeScript; the Mongo container and its volume are left
-untouched, so data is preserved. To force a clean rebuild:
+`--build` recompiles the TypeScript. Your data lives in Atlas, so redeploys never
+touch it. To force a clean rebuild:
 
 ```bash
 docker compose build --no-cache api && docker compose up -d
@@ -89,9 +102,8 @@ docker compose build --no-cache api && docker compose up -d
 ```bash
 docker compose ps                # status
 docker compose logs -f api       # tail API logs
-docker compose restart api       # restart just the API
-docker compose down              # stop everything (KEEPS the mongo_data volume)
-docker compose down -v           # stop AND wipe the database volume (destructive)
+docker compose restart api       # restart the API
+docker compose down              # stop the API (Atlas data is unaffected)
 ```
 
 ## Layout
