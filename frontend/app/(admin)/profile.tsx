@@ -77,7 +77,7 @@ export default function AdminProfile() {
           <View style={styles.bigAvatar}>
             <Feather name="shield" size={32} color={colors.primaryDark} />
           </View>
-          <TText variant="h2" align="center" style={{ marginTop: spacing.md }}>{user?.name || "TirthRide Admin"}</TText>
+          <TText variant="h2" align="center" style={{ marginTop: spacing.md }}>{user?.name || "FifthDigit Admin"}</TText>
           <TText variant="bodySm" muted align="center">+91 {user?.phone}</TText>
         </View>
 

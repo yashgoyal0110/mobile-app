@@ -13,6 +13,7 @@ import { api } from "../../src/api";
 import { notify } from "../../src/utils/dialog";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 import { Stay, stayTypeLabel, AMENITY_MAP, priceLabel } from "../../src/stays";
+import { recordStayView } from "../../src/savedStays";
 
 export default function StayDetail() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function StayDetail() {
     try {
       const res = await api<Stay>(`/stays/${id}`, { auth: false });
       setStay(res);
+      recordStayView(res); // remember for the My Trips → Stays tab
     } catch {
       notify("Unavailable", "This stay could not be loaded.");
     } finally {
@@ -42,7 +44,7 @@ export default function StayDetail() {
     const num = (stay?.whatsapp || stay?.contact_phone || "").replace(/[^0-9]/g, "");
     if (!num) return;
     const phone = num.length === 10 ? `91${num}` : num; // assume India if 10-digit
-    const text = encodeURIComponent(`Jai Shri Radhe 🙏 I found "${stay?.name}" on TirthRide and would like to ask about a room.`);
+    const text = encodeURIComponent(`Jai Shri Radhe 🙏 I found "${stay?.name}" on FifthDigit and would like to ask about a room.`);
     const url = `whatsapp://send?phone=${phone}&text=${text}`;
     Linking.openURL(url).catch(() =>
       Linking.openURL(`https://wa.me/${phone}?text=${text}`).catch(() => notify("WhatsApp not installed"))

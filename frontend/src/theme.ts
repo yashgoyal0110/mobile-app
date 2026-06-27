@@ -1,5 +1,5 @@
 /**
- * TirthRide design tokens — polished ride-booking-app palette.
+ * FifthDigit design tokens — polished ride-booking-app palette.
  *
  * Saffron primary (Govardhan identity) + Uber-style deep ink "dark" hero
  * surfaces + clean off-white background + crisp borders. Used app-wide.

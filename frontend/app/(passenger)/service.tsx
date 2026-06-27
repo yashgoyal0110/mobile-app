@@ -13,8 +13,8 @@ import { colors, radius, spacing, shadows } from "../../src/theme";
 
 const PARIKRAMA = {
   poochari: { name: "Poochari Parikrama", km: 12, desc: "Around the holy Poochari ka Lota route" },
-  radhakund: { name: "Radhakund Parikrama", km: 7, desc: "Sacred Radha Kund & Shyam Kund circuit" },
-  combined: { name: "Combined Parikrama", km: 19, desc: "Full Poochari + Radhakund yatra" },
+  radhakund: { name: "Radhakund Parikrama", km: 9, desc: "Sacred Radha Kund & Shyam Kund circuit" },
+  combined: { name: "Combined Parikrama", km: 21, desc: "Full Poochari + Radhakund yatra" },
 };
 
 const MAX_SCHEDULE_HOURS = 24;

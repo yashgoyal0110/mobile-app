@@ -5,3 +5,6 @@ nodeLinker: hoisted
 # Allow these dependencies to run their install/build scripts (pnpm blocks them by default).
 allowBuilds:
   unrs-resolver: true
+
+patchedDependencies:
+  expo-location@19.0.8: patches/expo-location@19.0.8.patch

@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       >
         <View>
           <TText variant="caption" muted>ADMIN CONTROL</TText>
-          <TText variant="h1" style={{ marginTop: 2 }}>TirthRide HQ</TText>
+          <TText variant="h1" style={{ marginTop: 2 }}>FifthDigit HQ</TText>
           <TText variant="bodySm" muted style={{ marginTop: 4 }}>Govardhan operations dashboard</TText>
         </View>
 

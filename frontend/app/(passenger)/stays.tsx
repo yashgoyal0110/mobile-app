@@ -82,6 +82,9 @@ export default function StaysScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]} testID="passenger-stays-screen">
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} testID="stays-back" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginBottom: 8 }}>
+          <Feather name="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
         <TText variant="caption" muted>VERIFIED PILGRIM STAYS</TText>
         <TText variant="h2" style={{ marginTop: 2 }}>Dharamshala & Guest Houses</TText>
       </View>

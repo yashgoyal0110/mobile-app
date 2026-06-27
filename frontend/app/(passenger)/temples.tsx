@@ -60,6 +60,9 @@ export default function TemplesScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top"]} testID="passenger-temples-screen">
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} testID="temples-back" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ marginBottom: 8 }}>
+          <Feather name="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
         <TText variant="caption" muted>DARSHAN & AARTI TIMINGS</TText>
         <TText variant="h2" style={{ marginTop: 2 }}>Temples of Govardhan</TText>
       </View>

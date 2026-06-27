@@ -178,7 +178,7 @@ export default function OtpScreen() {
                   </TText>
                 </View>
                 <TText variant="h1" style={{ marginTop: spacing.md }}>
-                  {isNewUser ? "Welcome to TirthRide 🙏" : "One quick thing"}
+                  {isNewUser ? "Welcome to FifthDigit 🙏" : "One quick thing"}
                 </TText>
                 <TText variant="body" muted style={{ marginTop: 6 }}>
                   {isNewUser

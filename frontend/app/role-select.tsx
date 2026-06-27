@@ -7,8 +7,8 @@ import { TText } from "../src/components/TText";
 import { colors, radius, spacing, shadows } from "../src/theme";
 
 const ROLES = [
-  { id: "passenger", title: "I'm a Passenger", subtitle: "Book parikrama & local e-rickshaw rides", icon: "user" as const, color: colors.primary, bg: colors.primaryLight },
-  { id: "driver", title: "I'm a Driver", subtitle: "Earn from your e-rickshaw with TirthRide", icon: "navigation" as const, color: colors.parikrama, bg: colors.parikramaBg },
+  { id: "passenger", title: "I'm a Traveller", subtitle: "Parikrama, darshan, stays & rides for yatris", icon: "user" as const, color: colors.primary, bg: colors.primaryLight },
+  { id: "driver", title: "I'm a Driver", subtitle: "Earn from your e-rickshaw with FifthDigit", icon: "navigation" as const, color: colors.parikrama, bg: colors.parikramaBg },
   { id: "admin", title: "Admin Portal", subtitle: "Manage fares, drivers & complaints", icon: "shield" as const, color: colors.info, bg: colors.infoBg },
 ];
 
@@ -25,18 +25,18 @@ export default function RoleSelect() {
 
           <View style={styles.brandRow}>
             <View style={styles.logoDot}>
-              <TText variant="h2" color="#fff">🛺</TText>
+              <TText variant="h2" color="#fff">🪈</TText>
             </View>
             <TText variant="caption" color={colors.primary} style={{ marginLeft: 10 }}>
-              GOVARDHAN · MATHURA
+             WELCOME TO BRAJ
             </TText>
           </View>
 
           <TText variant="display" color={colors.textInverse} style={{ marginTop: spacing.lg }}>
-            TirthRide
+            FifthDigit
           </TText>
           <TText variant="bodyLg" color={colors.darkMuted} style={{ marginTop: 6 }}>
-            Sacred journeys, simple rides
+            Come full circle · sacred journeys
           </TText>
 
           <View style={styles.heroChips}>
@@ -58,7 +58,7 @@ export default function RoleSelect() {
         <View style={styles.body}>
           <TText variant="h2" style={{ marginBottom: 4 }}>Get started</TText>
           <TText variant="bodySm" muted style={{ marginBottom: spacing.lg }}>
-            Choose how you want to use TirthRide
+            Choose how you want to use FifthDigit
           </TText>
           {ROLES.map((r) => (
             <TouchableOpacity
@@ -81,7 +81,7 @@ export default function RoleSelect() {
             </TouchableOpacity>
           ))}
           <View style={{ height: spacing.xl }} />
-          <TText variant="caption" muted align="center">By continuing you agree to TirthRide T&C</TText>
+          <TText variant="caption" muted align="center">By continuing you agree to FifthDigit T&C</TText>
         </View>
       </ScrollView>
     </SafeAreaView>
