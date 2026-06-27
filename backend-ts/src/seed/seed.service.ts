@@ -108,28 +108,64 @@ export class SeedService implements OnApplicationBootstrap {
     }
   }
 
-  /** Idempotent index creation. Safe to call on every startup. */
+  /**
+   * Idempotent index creation. Safe to call on every startup.
+   *
+   * Resilient by design: if an index with the same name already exists with a
+   * different spec — e.g. one created by the old Python backend without the same
+   * `unique`/options — Mongo raises IndexKeySpecsConflict / IndexOptionsConflict
+   * (code 85/86/68). We log a warning and carry on rather than crash the whole
+   * app; the existing index still serves queries. Real failures still surface.
+   */
   async ensureIndexes(): Promise<void> {
-    await this.userModel.collection.createIndex({ id: 1 }, { unique: true });
-    await this.userModel.collection.createIndex({ phone: 1 });
-    await this.driverModel.collection.createIndex(
-      { user_id: 1 },
-      { unique: true },
-    );
-    await this.driverModel.collection.createIndex({ online: 1, kyc_status: 1 });
-    await this.rideModel.collection.createIndex({ id: 1 }, { unique: true });
-    await this.rideModel.collection.createIndex({ passenger_id: 1 });
-    await this.rideModel.collection.createIndex({ driver_id: 1 });
-    await this.rideModel.collection.createIndex({ status: 1, created_at: -1 });
-    await this.stayModel.collection.createIndex({ id: 1 }, { unique: true });
-    await this.stayModel.collection.createIndex({ verified: 1, type: 1 });
-    await this.stayModel.collection.createIndex({ area: 1 });
-    await this.templeModel.collection.createIndex({ id: 1 }, { unique: true });
-    await this.templeModel.collection.createIndex({ verified: 1, featured: -1 });
-    await this.templeModel.collection.createIndex({ area: 1 });
-    await this.complaintModel.collection.createIndex({
-      status: 1,
-      created_at: -1,
-    });
+    const M = (m: Model<any>) => m.collection;
+
+    const plan: Array<{
+      col: any;
+      keys: Record<string, 1 | -1>;
+      options?: Record<string, any>;
+    }> = [
+      { col: M(this.userModel), keys: { id: 1 }, options: { unique: true } },
+      { col: M(this.userModel), keys: { phone: 1 } },
+      {
+        col: M(this.driverModel),
+        keys: { user_id: 1 },
+        options: { unique: true },
+      },
+      { col: M(this.driverModel), keys: { online: 1, kyc_status: 1 } },
+      { col: M(this.rideModel), keys: { id: 1 }, options: { unique: true } },
+      { col: M(this.rideModel), keys: { passenger_id: 1 } },
+      { col: M(this.rideModel), keys: { driver_id: 1 } },
+      { col: M(this.rideModel), keys: { status: 1, created_at: -1 } },
+      { col: M(this.stayModel), keys: { id: 1 }, options: { unique: true } },
+      { col: M(this.stayModel), keys: { verified: 1, type: 1 } },
+      { col: M(this.stayModel), keys: { area: 1 } },
+      { col: M(this.templeModel), keys: { id: 1 }, options: { unique: true } },
+      { col: M(this.templeModel), keys: { verified: 1, featured: -1 } },
+      { col: M(this.templeModel), keys: { area: 1 } },
+      { col: M(this.complaintModel), keys: { status: 1, created_at: -1 } },
+    ];
+
+    // Index option/spec conflicts (existing index w/ same name, different spec).
+    const CONFLICT_CODES = new Set([85, 86, 68]);
+    let created = 0;
+    let skipped = 0;
+    for (const { col, keys, options } of plan) {
+      try {
+        await col.createIndex(keys, options);
+        created++;
+      } catch (e: any) {
+        if (CONFLICT_CODES.has(e?.code)) {
+          skipped++;
+          this.logger.warn(
+            `Index ${col.collectionName} ${JSON.stringify(keys)} already ` +
+              `exists with a different spec — keeping the existing one (${e.codeName}).`,
+          );
+        } else {
+          throw e;
+        }
+      }
+    }
+    this.logger.log(`Indexes ensured (created/ok=${created}, skipped=${skipped})`);
   }
 }
