@@ -1,0 +1,6 @@
+# Caddy auto-provisions a free Let's Encrypt HTTPS certificate for $DOMAIN
+# and reverse-proxies to the API container. $DOMAIN must resolve to this VM's
+# public IP (a real domain, or a free <ip-with-dashes>.sslip.io hostname).
+{$DOMAIN} {
+	reverse_proxy api:8080
+}
