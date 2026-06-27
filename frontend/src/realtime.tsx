@@ -14,6 +14,11 @@ import Constants from "expo-constants";
 import { useAuth } from "./auth";
 import { api } from "./api";
 
+// Expo Go (SDK 53+) removed remote push notifications. Detect it so we can skip
+// all expo-notifications native calls there — the WebSocket realtime below still
+// works fully in Expo Go; push only activates in dev/standalone builds.
+const isExpoGo = Constants.appOwnership === "expo";
+
 type Listener = (event: any) => void;
 
 interface RealtimeCtx {
@@ -28,15 +33,17 @@ const Ctx = createContext<RealtimeCtx>({
   isOpen: () => false,
 });
 
-// Configure foreground notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Configure foreground notification behavior (no-op in Expo Go).
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 function wsUrlFor(token: string): string | null {
   let base = process.env.EXPO_PUBLIC_BACKEND_URL || "";
@@ -60,6 +67,7 @@ async function ensureAndroidChannel() {
 
 async function registerPushAsync(): Promise<string | null> {
   try {
+    if (isExpoGo) return null; // remote push unavailable in Expo Go (SDK 53+)
     if (!Device.isDevice) return null; // simulators can't get tokens
     await ensureAndroidChannel();
     const { status: existing } = await Notifications.getPermissionsAsync();
