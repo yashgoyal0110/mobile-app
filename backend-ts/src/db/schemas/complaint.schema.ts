@@ -7,10 +7,10 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class Complaint {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop()
+  @Prop({ type: String })
   status: string;
 
   [key: string]: any;

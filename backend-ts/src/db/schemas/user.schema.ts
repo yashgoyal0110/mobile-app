@@ -13,13 +13,13 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class User {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop()
+  @Prop({ type: String })
   phone: string;
 
-  @Prop()
+  @Prop({ type: String })
   role: string;
 
   [key: string]: any;

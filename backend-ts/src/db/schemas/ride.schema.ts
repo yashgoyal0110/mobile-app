@@ -7,16 +7,16 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class Ride {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   passenger_id: string;
 
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   driver_id: string | null;
 
-  @Prop()
+  @Prop({ type: String })
   status: string;
 
   [key: string]: any;

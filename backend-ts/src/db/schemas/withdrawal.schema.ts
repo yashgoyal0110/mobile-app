@@ -7,10 +7,10 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class Withdrawal {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   driver_id: string;
 
   [key: string]: any;

@@ -7,13 +7,13 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class Rating {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   ride_id: string;
 
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   target_user_id: string;
 
   [key: string]: any;

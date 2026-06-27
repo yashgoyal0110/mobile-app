@@ -7,13 +7,13 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class Temple {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop()
+  @Prop({ type: Boolean })
   verified: boolean;
 
-  @Prop()
+  @Prop({ type: String })
   area: string;
 
   [key: string]: any;

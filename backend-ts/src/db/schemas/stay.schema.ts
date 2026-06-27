@@ -7,16 +7,16 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class Stay {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop()
+  @Prop({ type: Boolean })
   verified: boolean;
 
-  @Prop()
+  @Prop({ type: String })
   type: string;
 
-  @Prop()
+  @Prop({ type: String })
   area: string;
 
   [key: string]: any;

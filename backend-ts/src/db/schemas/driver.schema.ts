@@ -7,16 +7,16 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   versionKey: false,
 })
 export class Driver {
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   id: string;
 
-  @Prop({ index: true })
+  @Prop({ type: String, index: true })
   user_id: string;
 
-  @Prop()
+  @Prop({ type: String })
   kyc_status: string;
 
-  @Prop()
+  @Prop({ type: Boolean })
   online: boolean;
 
   [key: string]: any;
