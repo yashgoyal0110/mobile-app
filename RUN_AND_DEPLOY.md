@@ -12,7 +12,7 @@ UP Braj Teerth Vikas Parishad pilot.
 
 ### Prerequisites
 - Python 3.12+
-- Node 18+ and Yarn
+- Node 18+ and pnpm (`corepack enable pnpm`)
 - MongoDB running locally **or** a free MongoDB Atlas cluster
 
 ### Backend
@@ -29,11 +29,11 @@ On first boot it auto-seeds the admin user, fare config, landmarks, and **4 samp
 ### Frontend
 ```bash
 cd frontend
-yarn install
+pnpm install
 cp .env.example .env                         # set EXPO_PUBLIC_BACKEND_URL
-yarn web        # browser demo at http://localhost:8081  (fastest for officials)
+pnpm web        # browser demo at http://localhost:8081  (fastest for officials)
 # or
-yarn start      # scan QR with Expo Go on a phone
+pnpm start      # scan QR with Expo Go on a phone
 ```
 
 > **Testing on a physical phone over LAN:** set
