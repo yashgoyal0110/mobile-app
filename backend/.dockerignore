@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+tests/
+../frontend
+.venv/
+venv/
+*.md

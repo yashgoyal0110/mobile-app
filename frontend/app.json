@@ -10,12 +10,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.brajgo.tirthride",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Find nearby e-rickshaws and set pickup",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Track your ride to ensure safety"
       }
     },
     "android": {
+      "package": "com.brajgo.tirthride",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F4EDE1"

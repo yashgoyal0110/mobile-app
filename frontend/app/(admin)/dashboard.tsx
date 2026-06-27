@@ -219,6 +219,8 @@ export default function AdminDashboard() {
         <Action icon="user-check" label="Driver approvals" desc={`${stats?.pending_approvals ?? 0} pending`} onPress={() => router.push("/(admin)/drivers")} testID="admin-quick-drivers" />
         <Action icon="dollar-sign" label="Update config" desc="Fares, landmarks, dispatch radius" onPress={() => router.push("/(admin)/fares")} testID="admin-quick-fares" />
         <Action icon="file-text" label="Ride audit & complaints" desc={`${stats?.open_complaints ?? 0} open complaints`} onPress={() => router.push("/(admin)/audit")} testID="admin-quick-audit" />
+        <Action icon="home" label="Dharamshalas & stays" desc="Add, verify & manage pilgrim stays" onPress={() => router.push("/(admin)/stays")} testID="admin-quick-stays" />
+        <Action icon="map-pin" label="Temples & darshan" desc="Timings, aarti & crowd updates" onPress={() => router.push("/(admin)/temples")} testID="admin-quick-temples" />
       </ScrollView>
     </SafeAreaView>
   );

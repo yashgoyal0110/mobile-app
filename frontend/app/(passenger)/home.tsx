@@ -198,6 +198,54 @@ export default function PassengerHome() {
           </Card>
         </TouchableOpacity>
 
+        {/* Stay discovery promo */}
+        <TouchableOpacity
+          testID="passenger-home-stays"
+          activeOpacity={0.85}
+          onPress={() => router.push("/(passenger)/stays")}
+        >
+          <Card style={{ marginTop: spacing.xl, backgroundColor: colors.dark, borderColor: colors.darkBorder }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={[styles.bigIcon, { backgroundColor: colors.primary }]}>
+                <Feather name="home" size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1, marginLeft: spacing.md }}>
+                <TText variant="caption" color={colors.primary}>STAY NEAR THE TEMPLES</TText>
+                <TText variant="bodyLg" weight="700" color="#fff" style={{ marginTop: 4 }}>
+                  Dharamshala & Guest Houses
+                </TText>
+                <TText variant="bodySm" color={colors.darkMuted} style={{ marginTop: 2 }}>
+                  Verified pilgrim stays · Call or WhatsApp
+                </TText>
+              </View>
+              <Feather name="chevron-right" size={22} color="#fff" />
+            </View>
+          </Card>
+        </TouchableOpacity>
+
+        {/* Temple darshan promo */}
+        <TouchableOpacity
+          testID="passenger-home-temples"
+          activeOpacity={0.85}
+          onPress={() => router.push("/(passenger)/temples")}
+        >
+          <Card style={{ marginTop: spacing.md, backgroundColor: "#FFF8E1", borderColor: "#F0E0B4" }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={[styles.bigIcon, { backgroundColor: "#FFE082" }]}>
+                <Feather name="clock" size={22} color={colors.parikrama} />
+              </View>
+              <View style={{ flex: 1, marginLeft: spacing.md }}>
+                <TText variant="caption" color={colors.parikrama}>DARSHAN & AARTI TIMINGS</TText>
+                <TText variant="bodyLg" weight="700" style={{ marginTop: 4 }}>Temples of Govardhan</TText>
+                <TText variant="bodySm" muted style={{ marginTop: 2 }}>
+                  Live open/closed · crowd · directions
+                </TText>
+              </View>
+              <Feather name="chevron-right" size={22} color={colors.parikrama} />
+            </View>
+          </Card>
+        </TouchableOpacity>
+
         {recentRides.length > 0 && (
           <>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.xl, marginBottom: spacing.md }}>

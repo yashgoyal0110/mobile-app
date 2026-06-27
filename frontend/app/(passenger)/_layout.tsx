@@ -42,6 +42,22 @@ export default function PassengerLayout() {
         }}
       />
       <Tabs.Screen
+        name="stays"
+        options={{
+          title: "Stays",
+          tabBarIcon: ({ color, size }) => <Feather name="home" size={size} color={color} />,
+          tabBarTestID: "passenger-tab-stays",
+        }}
+      />
+      <Tabs.Screen
+        name="temples"
+        options={{
+          title: "Temples",
+          tabBarIcon: ({ color, size }) => <Feather name="map-pin" size={size} color={color} />,
+          tabBarTestID: "passenger-tab-temples",
+        }}
+      />
+      <Tabs.Screen
         name="rides"
         options={{
           title: "Rides",
@@ -59,6 +75,8 @@ export default function PassengerLayout() {
       />
       <Tabs.Screen name="service" options={{ href: null }} />
       <Tabs.Screen name="booking" options={{ href: null }} />
+      <Tabs.Screen name="stay" options={{ href: null }} />
+      <Tabs.Screen name="temple" options={{ href: null }} />
     </Tabs>
   );
 }

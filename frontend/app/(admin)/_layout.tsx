@@ -32,6 +32,8 @@ export default function AdminLayout() {
       <Tabs.Screen name="fares" options={{ title: "Fares", tabBarIcon: ({ color, size }) => <Feather name="dollar-sign" size={size} color={color} />, tabBarTestID: "admin-tab-fares" }} />
       <Tabs.Screen name="audit" options={{ title: "Audit", tabBarIcon: ({ color, size }) => <Feather name="file-text" size={size} color={color} />, tabBarTestID: "admin-tab-audit" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} />, tabBarTestID: "admin-tab-profile" }} />
+      <Tabs.Screen name="stays" options={{ href: null }} />
+      <Tabs.Screen name="temples" options={{ href: null }} />
     </Tabs>
   );
 }

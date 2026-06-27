@@ -1,0 +1,14 @@
+# Slim runtime deps for production (Cloud Run image).
+# The full requirements.txt also contains dev/ML tooling that the app does not
+# need at runtime — keep the image small & fast by using this file in Docker.
+fastapi==0.110.1
+uvicorn[standard]==0.25.0
+motor==3.3.1
+pymongo==4.5.0
+pydantic==2.13.4
+starlette==0.37.2
+python-jose==3.5.0
+cryptography==48.0.0
+python-dotenv==1.2.2
+httpx==0.28.1
+websockets==16.0

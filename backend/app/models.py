@@ -122,3 +122,110 @@ class ComplaintReq(BaseModel):
 class ResolveComplaintReq(BaseModel):
     resolution: str
     status: Literal["resolved", "rejected"] = "resolved"
+
+
+# ---------- Stays (Dharamshala / Guest-house discovery) ----------
+StayType = Literal["dharamshala", "guesthouse", "ashram", "lodge", "hotel"]
+
+# Amenity keys understood by the frontend (rendered as icons/labels).
+AMENITY_KEYS = {
+    "parking", "food", "ac", "hot_water", "wifi", "lift",
+    "family_rooms", "elderly_friendly", "wheelchair", "locker", "power_backup",
+}
+
+
+class StayReq(BaseModel):
+    name: str
+    type: StayType = "dharamshala"
+    description: Optional[str] = None
+    address: str
+    area: Optional[str] = None            # e.g. "Jatipura", "Daan Ghati"
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    contact_phone: str
+    whatsapp: Optional[str] = None        # falls back to contact_phone if empty
+    price_min: Optional[float] = None     # indicative ₹/night; None => donation/on-request
+    price_max: Optional[float] = None
+    donation_based: bool = False
+    room_types: List[str] = []            # e.g. ["Single", "Family", "Dormitory"]
+    capacity: Optional[int] = None        # approx rooms or beds
+    amenities: List[str] = []             # subset of AMENITY_KEYS
+    photos: List[str] = []                # urls or base64 data-URIs
+    verified: bool = False
+    available: bool = True
+    featured: bool = False
+
+
+class StayUpdateReq(BaseModel):
+    name: Optional[str] = None
+    type: Optional[StayType] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
+    area: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    contact_phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    donation_based: Optional[bool] = None
+    room_types: Optional[List[str]] = None
+    capacity: Optional[int] = None
+    amenities: Optional[List[str]] = None
+    photos: Optional[List[str]] = None
+    verified: Optional[bool] = None
+    available: Optional[bool] = None
+    featured: Optional[bool] = None
+
+
+# ---------- Temples (darshan timings / aarti / crowd) ----------
+CrowdLevel = Literal["low", "moderate", "high", "very_high"]
+
+
+class DarshanSlot(BaseModel):
+    label: Optional[str] = None      # e.g. "Morning Darshan", "Shringar"
+    open: str                        # "HH:MM" 24h IST
+    close: str                       # "HH:MM" 24h IST
+
+
+class AartiTiming(BaseModel):
+    name: str                        # e.g. "Mangala Aarti"
+    time: str                        # "HH:MM" 24h IST
+
+
+class TempleReq(BaseModel):
+    name: str
+    deity: Optional[str] = None
+    description: Optional[str] = None
+    address: str
+    area: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    contact_phone: Optional[str] = None
+    darshan_slots: List[DarshanSlot] = []
+    aarti_timings: List[AartiTiming] = []
+    crowd_level: Optional[CrowdLevel] = None   # admin-set, optional
+    entry_info: Optional[str] = None           # free text: entry fee / rules
+    special_note: Optional[str] = None         # festival / temporary timing notes
+    photos: List[str] = []
+    verified: bool = False
+    featured: bool = False
+
+
+class TempleUpdateReq(BaseModel):
+    name: Optional[str] = None
+    deity: Optional[str] = None
+    description: Optional[str] = None
+    address: Optional[str] = None
+    area: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    contact_phone: Optional[str] = None
+    darshan_slots: Optional[List[DarshanSlot]] = None
+    aarti_timings: Optional[List[AartiTiming]] = None
+    crowd_level: Optional[CrowdLevel] = None
+    entry_info: Optional[str] = None
+    special_note: Optional[str] = None
+    photos: Optional[List[str]] = None
+    verified: Optional[bool] = None
+    featured: Optional[bool] = None
