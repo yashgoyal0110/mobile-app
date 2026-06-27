@@ -1,0 +1,51 @@
+# TirthRide backend — self-contained stack for a VM.
+#   - `api`   : the NestJS backend, reachable from the outside world on :3002
+#   - `mongo` : MongoDB, NOT published to the host (only the api can reach it)
+#
+# Quick start on the VM:
+#   cp .env.example .env   # set JWT_SECRET, ADMIN_PHONES, etc.
+#   docker compose up -d --build
+#
+# See README.md → "Deploy / redeploy on a VM" for the full flow.
+
+services:
+  api:
+    build: .
+    image: tirthride-backend:latest
+    container_name: tirthride-api
+    restart: unless-stopped
+    # Host 3002  ->  container 3002 (outer world hits :3002)
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      # Talk to the mongo service on the compose network, not localhost.
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: ${DB_NAME:-tirthride}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-secret}
+      ADMIN_PHONES: ${ADMIN_PHONES:-9999999999}
+      MOCK_OTP: ${MOCK_OTP:-123456}
+      GEO_PROVIDER: ${GEO_PROVIDER:-osm}
+      NOMINATIM_URL: ${NOMINATIM_URL:-https://nominatim.openstreetmap.org}
+      OSRM_URL: ${OSRM_URL:-https://router.project-osrm.org}
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7
+    container_name: tirthride-mongo
+    restart: unless-stopped
+    # No host port published — keep the DB off the public internet.
+    # (Add `ports: ["127.0.0.1:27017:27017"]` only if you need local access.)
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongo_data:
