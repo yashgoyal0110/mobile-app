@@ -1,4 +1,11 @@
-import { Body, Controller, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuthGuard } from '../../common/auth.guard';
@@ -10,6 +17,8 @@ import { PushTokenDto, UpdateUserDto } from './users.dto';
 @Controller('users')
 @UseGuards(AuthGuard)
 export class UsersController {
+  private readonly logger = new Logger('fifthdigit.users');
+
   constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {}
 
   @Patch('me')
@@ -30,6 +39,9 @@ export class UsersController {
     await this.userModel.updateOne(
       { id: user.id },
       { $set: { expo_push_token: req.token, push_platform: req.platform } },
+    );
+    this.logger.debug(
+      `Push token registered user=${user.id} platform=${req.platform}`,
     );
     return { ok: true };
   }

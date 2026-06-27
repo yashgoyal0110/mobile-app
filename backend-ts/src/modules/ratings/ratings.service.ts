@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -21,6 +22,8 @@ import {
 
 @Injectable()
 export class RatingsService {
+  private readonly logger = new Logger('fifthdigit.ratings');
+
   constructor(
     @InjectModel(Rating.name) private readonly ratingModel: Model<Rating>,
     @InjectModel(Ride.name) private readonly rideModel: Model<Ride>,
@@ -111,6 +114,10 @@ export class RatingsService {
     }
 
     await this.recomputeAvgForUser(targetUserId);
+    this.logger.log(
+      `Ride rated ride=${rideId} by=${user.id} target=${targetUserId} ` +
+        `stars=${req.stars}${existing ? ' (updated)' : ''}`,
+    );
     return clean(rating);
   }
 
@@ -162,6 +169,10 @@ export class RatingsService {
       resolved_by: null,
     };
     await this.complaintModel.create(c);
+    this.logger.warn(
+      `Complaint filed id=${c.id} ride=${rideId} category=${req.category} ` +
+        `by=${user.id} against=${against}`,
+    );
     return clean(c);
   }
 
@@ -217,6 +228,9 @@ export class RatingsService {
     if (res.matchedCount === 0) {
       throw new NotFoundException('Complaint not found');
     }
+    this.logger.log(
+      `Complaint resolved id=${cid} status=${req.status} by=${user.id}`,
+    );
     return { ok: true };
   }
 }

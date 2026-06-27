@@ -22,7 +22,7 @@ import {
 } from '../../config/constants';
 import { haversineKm, round } from '../../common/utils';
 
-const logger = new Logger('tirthride.geo');
+const logger = new Logger('fifthdigit.geo');
 
 function inBbox(lat: number, lng: number): boolean {
   return (

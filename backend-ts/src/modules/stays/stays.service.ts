@@ -2,6 +2,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -12,6 +13,8 @@ import { AMENITY_KEYS, StayDto, StayUpdateDto } from './stays.dto';
 
 @Injectable()
 export class StaysService {
+  private readonly logger = new Logger('fifthdigit.stays');
+
   constructor(
     @InjectModel(Stay.name) private readonly stayModel: Model<Stay>,
   ) {}
@@ -142,6 +145,7 @@ export class StaysService {
       updated_at: ts,
     };
     await this.stayModel.create(doc);
+    this.logger.log(`Stay created id=${doc.id} name="${doc.name}"`);
     return clean(doc);
   }
 
@@ -158,12 +162,18 @@ export class StaysService {
     );
     if (res.matchedCount === 0) throw new NotFoundException('Stay not found');
     const fresh = await this.stayModel.findOne({ id: stayId }).lean();
+    this.logger.log(
+      `Stay updated id=${stayId} fields=[${Object.keys(updates)
+        .filter((k) => k !== 'updated_at')
+        .join(',')}]`,
+    );
     return clean(fresh);
   }
 
   async adminDeleteStay(stayId: string) {
     const res = await this.stayModel.deleteOne({ id: stayId });
     if (res.deletedCount === 0) throw new NotFoundException('Stay not found');
+    this.logger.log(`Stay deleted id=${stayId}`);
     return { ok: true };
   }
 }

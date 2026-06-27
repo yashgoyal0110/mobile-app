@@ -4,6 +4,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   NotFoundException,
   Param,
   Post,
@@ -21,6 +22,8 @@ import { SuggestFareDto, VoteDto } from './suggestions.dto';
 @Controller('suggestions')
 @UseGuards(AuthGuard)
 export class SuggestionsController {
+  private readonly logger = new Logger('fifthdigit.suggestions');
+
   constructor(
     @InjectModel(FareSuggestion.name)
     private readonly suggestionModel: Model<FareSuggestion>,
@@ -43,6 +46,10 @@ export class SuggestionsController {
       created_at: now(),
     };
     await this.suggestionModel.create(s);
+    this.logger.log(
+      `Fare suggestion created id=${s.id} driver=${user.id} ` +
+        `rideType=${req.ride_type} amount=${req.amount}`,
+    );
     return clean(s);
   }
 
@@ -73,6 +80,9 @@ export class SuggestionsController {
     await this.suggestionModel.updateOne(
       { id: sid },
       { $inc: inc, $push: { voters: user.id } },
+    );
+    this.logger.log(
+      `Fare suggestion vote id=${sid} vote=${req.vote} driver=${user.id}`,
     );
     return { ok: true };
   }

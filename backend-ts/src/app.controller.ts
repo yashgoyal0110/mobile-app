@@ -8,7 +8,7 @@ export class AppController {
 
   @Get()
   root() {
-    return { app: 'TirthRide', status: 'running', version: '1.0.0' };
+    return { app: 'FifthDigit', status: 'running', version: '1.0.0' };
   }
 
   @Get('health')

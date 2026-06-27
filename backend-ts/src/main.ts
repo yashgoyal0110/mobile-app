@@ -1,6 +1,7 @@
 import 'reflect-metadata';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger as NestLogger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { WebSocketServer } from 'ws';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
@@ -8,8 +9,18 @@ import { WsHandler } from './realtime/ws.handler';
 import { PORT } from './config/constants';
 
 async function bootstrap() {
-  const logger = new Logger('tirthride');
-  const app = await NestFactory.create(AppModule, { cors: false });
+  // bufferLogs: hold early logs until the pino logger is wired, so nothing is
+  // emitted through the default console logger.
+  const app = await NestFactory.create(AppModule, {
+    cors: false,
+    bufferLogs: true,
+  });
+
+  // Route Nest's internal logs (and every `new Logger(ctx)` in the app) through
+  // pino, so all output is structured and consistent.
+  app.useLogger(app.get(PinoLogger));
+
+  const logger = new NestLogger('fifthdigit');
 
   // All business routes live under /api (mirrors FastAPI APIRouter(prefix="/api")).
   app.setGlobalPrefix('api');
@@ -70,7 +81,7 @@ async function bootstrap() {
   });
 
   await app.listen(PORT, '0.0.0.0');
-  logger.log(`TirthRide API listening on :${PORT}`);
+  logger.log(`FifthDigit API listening on :${PORT}`);
 }
 
 bootstrap();

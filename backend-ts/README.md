@@ -1,4 +1,4 @@
-# TirthRide Backend — NestJS
+# FifthDigit Backend — NestJS
 
 TypeScript port of the original FastAPI backend (`../backend`). Same MongoDB
 database, same `/api` routes, same JSON shapes — so the Expo frontend works

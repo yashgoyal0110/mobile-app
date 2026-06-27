@@ -1,4 +1,4 @@
-# ---- TirthRide backend (NestJS) ----
+# ---- FifthDigit backend (NestJS) ----
 # Multi-stage build: compile TS in a full image, run from a slim one.
 # Node 24 = current Active LTS. (Node 23 is EOL — avoid for production.)
 

@@ -82,3 +82,11 @@ export function round(value: number, digits = 2): number {
   const f = Math.pow(10, digits);
   return Math.round((value + Number.EPSILON) * f) / f;
 }
+
+/** Mask a phone number for logs (PII): keep last 4 digits, e.g. ******1234. */
+export function maskPhone(phone?: string | null): string {
+  if (!phone) return 'unknown';
+  const s = String(phone);
+  if (s.length <= 4) return s;
+  return '*'.repeat(s.length - 4) + s.slice(-4);
+}

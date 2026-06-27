@@ -19,7 +19,7 @@ import { Ride } from '../db/schemas/ride.schema';
 
 @Injectable()
 export class WsHandler {
-  private readonly logger = new Logger('tirthride.ws');
+  private readonly logger = new Logger('fifthdigit.ws');
 
   constructor(
     private readonly jwt: JwtService,
@@ -33,17 +33,20 @@ export class WsHandler {
   async handleConnection(ws: WebSocket, token: string | null): Promise<void> {
     const payload = token ? this.jwt.verify(token) : null;
     if (!payload || !payload.sub) {
+      this.logger.warn('WS rejected: missing/invalid token');
       ws.close(4401);
       return;
     }
     const userId = payload.sub;
     const user = await this.userModel.findOne({ id: userId }).lean();
     if (!user) {
+      this.logger.warn(`WS rejected: user not found user=${userId}`);
       ws.close(4404);
       return;
     }
 
     this.realtime.connect(userId, ws);
+    this.logger.log(`WS connected user=${userId} role=${user.role}`);
     // Greeting
     this.realtime.sendToUser(userId, {
       type: 'hello',
@@ -63,7 +66,10 @@ export class WsHandler {
       );
     });
 
-    ws.on('close', () => this.realtime.disconnect(userId, ws));
+    ws.on('close', () => {
+      this.realtime.disconnect(userId, ws);
+      this.logger.log(`WS disconnected user=${userId}`);
+    });
     ws.on('error', (e) => {
       this.logger.warn(`WS error for ${userId}: ${e}`);
       this.realtime.disconnect(userId, ws);

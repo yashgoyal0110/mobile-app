@@ -16,7 +16,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ADMIN_PHONES, MOCK_OTP } from '../../config/constants';
 import { JwtService } from '../../common/jwt.service';
-import { clean, genPin, newId, now } from '../../common/utils';
+import { clean, genPin, maskPhone, newId, now } from '../../common/utils';
 import { User } from '../../db/schemas/user.schema';
 import { Driver } from '../../db/schemas/driver.schema';
 import { SendOtpDto, VerifyOtpDto } from './auth.dto';
@@ -29,7 +29,7 @@ function isValidName(value: string): boolean {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger('tirthride.auth');
+  private readonly logger = new Logger('fifthdigit.auth');
 
   // In-memory OTP store (phone -> {otp, expiresAt}) — login OTPs are NOT sticky
   private readonly otpStore = new Map<string, { otp: string; expiresAt: Date }>();
@@ -51,7 +51,9 @@ export class AuthService {
     }
     const expiresAt = new Date(now().getTime() + 5 * 60 * 1000);
     this.otpStore.set(phone, { otp: MOCK_OTP, expiresAt });
-    this.logger.log(`OTP for ${phone}: ${MOCK_OTP}`);
+    // Never log the OTP itself at info level. Keep the literal at debug only.
+    this.logger.log(`OTP issued phone=${maskPhone(phone)} role=${req.role}`);
+    this.logger.debug(`OTP value for ${maskPhone(phone)}: ${MOCK_OTP}`);
     return { message: 'OTP sent', dev_otp: MOCK_OTP };
   }
 
@@ -60,7 +62,12 @@ export class AuthService {
     const rec = this.otpStore.get(phone);
     if (!rec) throw new BadRequestException('OTP not requested');
     if (rec.expiresAt < now()) throw new BadRequestException('OTP expired');
-    if (req.otp !== rec.otp) throw new BadRequestException('Invalid OTP');
+    if (req.otp !== rec.otp) {
+      this.logger.warn(
+        `OTP verification failed phone=${maskPhone(phone)} role=${req.role}`,
+      );
+      throw new BadRequestException('Invalid OTP');
+    }
 
     let user: any = await this.userModel.findOne({ phone }).lean();
     let isNew = false;
@@ -103,7 +110,7 @@ export class AuthService {
         user = {
           id: newId(),
           phone,
-          name: 'TirthRide Admin',
+          name: 'FifthDigit Admin',
           role: 'admin',
           ride_pin: genPin(),
           created_at: now(),
@@ -144,6 +151,13 @@ export class AuthService {
 
     this.otpStore.delete(phone);
     const token = this.jwt.makeToken(user.id, user.role);
+    if (isNew) {
+      this.logger.log(
+        `New ${user.role} signed up user=${user.id} phone=${maskPhone(phone)}`,
+      );
+    } else {
+      this.logger.log(`User logged in user=${user.id} role=${user.role}`);
+    }
     return {
       access_token: token,
       user: clean(user),

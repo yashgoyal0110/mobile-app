@@ -1,4 +1,4 @@
-# TirthRide backend — runs just the NestJS API, backed by a hosted MongoDB Atlas
+# FifthDigit backend — runs just the NestJS API, backed by a hosted MongoDB Atlas
 # cluster (no local database container).
 #
 # The API is reachable from the outside world on :3002. The Atlas connection
@@ -14,8 +14,8 @@
 services:
   api:
     build: .
-    image: tirthride-backend:latest
-    container_name: tirthride-api
+    image: fifthdigit-backend:latest
+    container_name: fifthdigit-api
     restart: unless-stopped
     # Host 3002  ->  container 3002 (outer world hits :3002)
     ports:

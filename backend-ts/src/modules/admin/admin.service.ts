@@ -2,6 +2,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -41,6 +42,8 @@ function utcMidnightToday(): Date {
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger('fifthdigit.admin');
+
   constructor(
     @InjectModel(FareConfig.name)
     private readonly fareConfigModel: Model<FareConfig>,
@@ -64,6 +67,11 @@ export class AdminService {
     updates.updated_at = now();
     await this.fareConfigModel.updateOne({ id: 'default' }, { $set: updates });
     const cfg = await this.fareConfigModel.findOne({ id: 'default' }).lean();
+    this.logger.log(
+      `Fare config updated fields=[${Object.keys(updates)
+        .filter((k) => k !== 'updated_at')
+        .join(',')}]`,
+    );
     return clean(cfg);
   }
 
@@ -143,6 +151,7 @@ export class AdminService {
       { $set: { kyc_status: 'approved', approved_at: now() } },
     );
     if (res.matchedCount === 0) throw new NotFoundException('Driver not found');
+    this.logger.log(`Driver KYC approved driver=${driverUserId}`);
     return { ok: true };
   }
 
@@ -159,6 +168,9 @@ export class AdminService {
       },
     );
     if (res.matchedCount === 0) throw new NotFoundException('Driver not found');
+    this.logger.warn(
+      `Driver KYC rejected driver=${driverUserId} reason="${reason}"`,
+    );
     return { ok: true };
   }
 
@@ -342,6 +354,7 @@ export class AdminService {
       { id: wid },
       { $set: { status: 'paid', paid_at: now() } },
     );
+    this.logger.log(`Withdrawal marked paid id=${wid}`);
     return { ok: true };
   }
 
@@ -366,6 +379,9 @@ export class AdminService {
     await this.suggestionModel.updateOne(
       { id: sid },
       { $set: { status: 'applied' } },
+    );
+    this.logger.log(
+      `Fare suggestion applied id=${sid} field=${field} amount=${(s as any).amount}`,
     );
     return { ok: true };
   }

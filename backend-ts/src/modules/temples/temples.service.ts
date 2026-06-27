@@ -2,6 +2,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -12,6 +13,8 @@ import { TempleDto, TempleUpdateDto } from './temples.dto';
 
 @Injectable()
 export class TemplesService {
+  private readonly logger = new Logger('fifthdigit.temples');
+
   constructor(
     @InjectModel(Temple.name) private readonly templeModel: Model<Temple>,
   ) {}
@@ -101,6 +104,7 @@ export class TemplesService {
       crowd_updated_at: req.crowd_level ? ts : null,
     };
     await this.templeModel.create(doc);
+    this.logger.log(`Temple created id=${doc.id} name="${doc.name}"`);
     return clean(doc);
   }
 
@@ -119,12 +123,18 @@ export class TemplesService {
     );
     if (res.matchedCount === 0) throw new NotFoundException('Temple not found');
     const fresh = await this.templeModel.findOne({ id: templeId }).lean();
+    this.logger.log(
+      `Temple updated id=${templeId} fields=[${Object.keys(updates)
+        .filter((k) => k !== 'updated_at')
+        .join(',')}]`,
+    );
     return clean(fresh);
   }
 
   async adminDeleteTemple(templeId: string) {
     const res = await this.templeModel.deleteOne({ id: templeId });
     if (res.deletedCount === 0) throw new NotFoundException('Temple not found');
+    this.logger.log(`Temple deleted id=${templeId}`);
     return { ok: true };
   }
 }

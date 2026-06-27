@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -17,6 +18,8 @@ import { KycDto, LocationDto, OnlineDto, WithdrawDto } from './drivers.dto';
 
 @Injectable()
 export class DriversService {
+  private readonly logger = new Logger('fifthdigit.drivers');
+
   constructor(
     private readonly realtime: RealtimeService,
     @InjectModel(Driver.name) private readonly driverModel: Model<Driver>,
@@ -43,6 +46,9 @@ export class DriversService {
       );
     }
     const fresh = await this.driverModel.findOne({ user_id: user.id }).lean();
+    this.logger.log(
+      `KYC submitted driver=${user.id} vehicle=${req.vehicle_no}`,
+    );
     return clean(fresh);
   }
 
@@ -60,10 +66,17 @@ export class DriversService {
     );
     if (req.online) this.realtime.markOnline(user.id);
     else this.realtime.markOffline(user.id);
+    this.logger.log(
+      `Driver ${req.online ? 'online' : 'offline'} driver=${user.id}`,
+    );
     return { online: req.online };
   }
 
   async updateLocation(req: LocationDto, user: any) {
+    // High-frequency: debug only.
+    this.logger.debug(
+      `Driver location driver=${user.id} lat=${req.lat} lng=${req.lng}`,
+    );
     await this.driverModel.updateOne(
       { user_id: user.id },
       {
@@ -152,6 +165,9 @@ export class DriversService {
     await this.driverModel.updateOne(
       { user_id: user.id },
       { $inc: { earnings_withdrawn: req.amount } },
+    );
+    this.logger.log(
+      `Withdrawal requested id=${w.id} driver=${user.id} amount=${req.amount}`,
     );
     return clean(w);
   }

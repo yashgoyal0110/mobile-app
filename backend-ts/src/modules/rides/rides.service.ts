@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -26,6 +27,8 @@ import { CancelDto, CreateRideDto, TipDto, VerifyPinDto } from './rides.dto';
 
 @Injectable()
 export class RidesService {
+  private readonly logger = new Logger('fifthdigit.rides');
+
   constructor(
     private readonly realtime: RealtimeService,
     @InjectModel(Ride.name) private readonly rideModel: Model<Ride>,
@@ -161,6 +164,10 @@ export class RidesService {
       cancelled_by: null,
     };
     await this.rideModel.create(ride);
+    this.logger.log(
+      `Ride created id=${ride.id} type=${req.type} fare=${fare} ` +
+        `passenger=${user.id} status=${ride.status}`,
+    );
 
     // Live dispatch to eligible drivers if immediate (not scheduled)
     if (!scheduledAt) {
@@ -177,6 +184,9 @@ export class RidesService {
         ride_id: ride.id,
         type: 'ride_requested',
       });
+      this.logger.log(
+        `Ride dispatched id=${ride.id} eligibleDrivers=${driverIds.length}`,
+      );
     }
     return clean(ride);
   }
@@ -287,6 +297,7 @@ export class RidesService {
       .map((d) => d.user_id)
       .filter((u) => u && u !== user.id);
     this.realtime.broadcast(others, { type: 'ride_taken', ride_id: rideId });
+    this.logger.log(`Ride accepted id=${rideId} driver=${user.id}`);
     return out;
   }
 
@@ -301,6 +312,9 @@ export class RidesService {
       );
     }
     if (req.pin !== (ride as any).pin) {
+      this.logger.warn(
+        `PIN verification failed ride=${rideId} driver=${user.id}`,
+      );
       throw new BadRequestException('Incorrect PIN');
     }
     const audit = ((ride as any).audit_log || []).concat([
@@ -320,6 +334,7 @@ export class RidesService {
       'Have a safe journey!',
       { ride_id: rideId, type: 'ride_started' },
     );
+    this.logger.log(`Ride started id=${rideId} driver=${user.id}`);
     return { ok: true, status: 'started' };
   }
 
@@ -352,8 +367,12 @@ export class RidesService {
     await this.pushUsers(
       [(ride as any).passenger_id],
       'Ride completed 🙏',
-      `Total fare ₹${Math.round((ride as any).fare)}. Thank you for choosing TirthRide!`,
+      `Total fare ₹${Math.round((ride as any).fare)}. Thank you for choosing FifthDigit!`,
       { ride_id: rideId, type: 'ride_completed' },
+    );
+    this.logger.log(
+      `Ride completed id=${rideId} driver=${user.id} ` +
+        `fare=${(ride as any).fare} earning=${(ride as any).driver_earning}`,
     );
     return { ok: true, status: 'completed' };
   }
@@ -408,6 +427,10 @@ export class RidesService {
       `Boosted fare ₹${Math.round(newFare)} • ${(ride as any).type || 'ride'}`,
       { ride_id: rideId, type: 'ride_requested' },
     );
+    this.logger.log(
+      `Tip added ride=${rideId} amount=${req.amount} newFare=${newFare} ` +
+        `rebroadcast=${driverIds.length}`,
+    );
     return clean(fresh);
   }
 
@@ -459,6 +482,10 @@ export class RidesService {
         { ride_id: rideId, type: 'ride_cancelled' },
       );
     }
+    this.logger.log(
+      `Ride cancelled id=${rideId} by=${user.role} user=${user.id} ` +
+        `reason="${req.reason}"`,
+    );
     return { ok: true };
   }
 }

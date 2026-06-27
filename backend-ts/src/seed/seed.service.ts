@@ -23,7 +23,7 @@ import {
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
-  private readonly logger = new Logger('tirthride');
+  private readonly logger = new Logger('fifthdigit');
 
   constructor(
     @InjectModel(FareConfig.name)
@@ -38,9 +38,10 @@ export class SeedService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    this.logger.log('Running startup seed + index checks...');
     await this.ensureSeed();
     await this.ensureIndexes();
-    this.logger.log('TirthRide API started');
+    this.logger.log('Seed + indexes ready');
   }
 
   async ensureSeed(): Promise<void> {
@@ -72,7 +73,7 @@ export class SeedService implements OnApplicationBootstrap {
         await this.userModel.create({
           id: newId(),
           phone,
-          name: 'TirthRide Admin',
+          name: 'FifthDigit Admin',
           role: 'admin',
           created_at: now(),
         });

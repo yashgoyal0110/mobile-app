@@ -16,7 +16,7 @@ function envFloat(key: string, fallback: number): number {
 }
 
 export const JWT_SECRET =
-  process.env.JWT_SECRET || 'tirthride-dev-secret-change-in-prod';
+  process.env.JWT_SECRET || 'fifthdigit-dev-secret-change-in-prod';
 export const JWT_ALG = 'HS256' as const;
 export const JWT_EXPIRE_DAYS = 30;
 
@@ -42,8 +42,8 @@ export const REGION_BBOX = {
   east: envFloat('REGION_EAST', 77.58),
 };
 export const REGION_CENTER = { lat: 27.4985, lng: 77.4615 };
-export const USER_AGENT = 'TirthRide/1.0 (govardhan-e-rickshaw)';
+export const USER_AGENT = 'FifthDigit/1.0 (govardhan-e-rickshaw)';
 
 export const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017';
-export const DB_NAME = process.env.DB_NAME || 'tirthride';
+export const DB_NAME = process.env.DB_NAME || 'fifthdigit';
 export const PORT = Number(process.env.PORT || 3002);

@@ -15,7 +15,7 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 @Injectable()
 export class RealtimeService {
-  private readonly logger = new Logger('tirthride.realtime');
+  private readonly logger = new Logger('fifthdigit.realtime');
 
   // user_id -> set of WebSocket
   private readonly conns = new Map<string, Set<WebSocket>>();
@@ -106,6 +106,10 @@ export class RealtimeService {
       if (r.status >= 300) {
         this.logger.warn(
           `Expo push non-2xx: ${r.status} ${JSON.stringify(r.data).slice(0, 200)}`,
+        );
+      } else {
+        this.logger.debug(
+          `Expo push sent count=${valid.length} title="${title}"`,
         );
       }
     } catch (e) {

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { DB_NAME, MONGO_URL } from './config/constants';
+import { AppLoggerModule } from './logging/logging.module';
 import { DatabaseModule } from './db/database.module';
 import { CommonModule } from './common/common.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -25,6 +26,8 @@ import { TemplesModule } from './modules/temples/temples.module';
   imports: [
     // Load .env into process.env before constants.ts is consumed.
     ConfigModule.forRoot({ isGlobal: true }),
+    // Structured request + application logging (pino). Global.
+    AppLoggerModule,
     MongooseModule.forRoot(MONGO_URL, { dbName: DB_NAME }),
     DatabaseModule,
     CommonModule,

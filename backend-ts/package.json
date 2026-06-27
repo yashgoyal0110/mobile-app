@@ -1,7 +1,7 @@
 {
-  "name": "tirthride-backend",
+  "name": "fifthdigit-backend",
   "version": "1.0.0",
-  "description": "TirthRide Backend — NestJS + MongoDB. E-rickshaw booking & management for Govardhan, Mathura.",
+  "description": "FifthDigit Backend — NestJS + MongoDB. E-rickshaw booking & management for Govardhan, Mathura.",
   "private": true,
   "license": "UNLICENSED",
   "engines": {
@@ -27,6 +27,9 @@
     "dotenv": "^16.4.7",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
+    "nestjs-pino": "^4.3.0",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "uuid": "^11.0.5",
@@ -39,6 +42,7 @@
     "@types/node": "^22.10.7",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.13",
+    "pino-pretty": "^13.0.0",
     "typescript": "^5.7.3"
   }
 }
