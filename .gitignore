@@ -88,5 +88,8 @@ credentials.json
 .credentials
 
 
+
+
 .emergent/
-.metro-cache
+frontend/.metro-cache/
+.metro-cache/
