@@ -21,6 +21,7 @@ import { GeoModule } from './modules/geo/geo.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
 import { StaysModule } from './modules/stays/stays.module';
 import { TemplesModule } from './modules/temples/temples.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { TemplesModule } from './modules/temples/temples.module';
     RatingsModule,
     StaysModule,
     TemplesModule,
+    UploadsModule,
   ],
   controllers: [AppController],
 })

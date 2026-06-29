@@ -15,6 +15,7 @@ import { User } from '../../db/schemas/user.schema';
 import { Complaint } from '../../db/schemas/complaint.schema';
 import { Withdrawal } from '../../db/schemas/withdrawal.schema';
 import { FareSuggestion } from '../../db/schemas/fare-suggestion.schema';
+import { StorageService } from '../uploads/storage.service';
 import { LandmarkDto, LandmarkUpdateDto } from './admin.dto';
 
 const ALLOWED_CFG_FIELDS = new Set([
@@ -56,6 +57,7 @@ export class AdminService {
     private readonly withdrawalModel: Model<Withdrawal>,
     @InjectModel(FareSuggestion.name)
     private readonly suggestionModel: Model<FareSuggestion>,
+    private readonly storage: StorageService,
   ) {}
 
   // ---------- Fare / config ----------
@@ -140,9 +142,36 @@ export class AdminService {
       const u = await this.userModel.findOne({ id: d.user_id }).lean();
       const item: any = clean(d);
       item.user = u ? clean(u) : null;
+      // KYC docs live in a private prefix — hand the admin short-lived view URLs.
+      item.doc_urls = await this.signKycDocs(item);
       out.push(item);
     }
     return { drivers: out };
+  }
+
+  /**
+   * Build short-lived signed view URLs for a driver's KYC documents so the
+   * admin can review private (non-public) objects. Best-effort: any field that
+   * isn't a storage object or fails to sign is simply omitted.
+   */
+  private async signKycDocs(
+    item: any,
+  ): Promise<Record<string, string>> {
+    if (!this.storage.enabled) return {};
+    const fields = ['profile_photo', 'aadhar_photo', 'rc_photo'];
+    const urls: Record<string, string> = {};
+    await Promise.all(
+      fields.map(async (f) => {
+        const val = item[f];
+        if (!val || typeof val !== 'string') return;
+        try {
+          urls[f] = await this.storage.signRead(val);
+        } catch {
+          /* not a storage object or signing failed — skip */
+        }
+      }),
+    );
+    return urls;
   }
 
   async approveDriver(driverUserId: string) {

@@ -14,6 +14,7 @@ import { Driver } from '../../db/schemas/driver.schema';
 import { Ride } from '../../db/schemas/ride.schema';
 import { User } from '../../db/schemas/user.schema';
 import { Withdrawal } from '../../db/schemas/withdrawal.schema';
+import { StorageService } from '../uploads/storage.service';
 import { KycDto, LocationDto, OnlineDto, WithdrawDto } from './drivers.dto';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class DriversService {
 
   constructor(
     private readonly realtime: RealtimeService,
+    private readonly storage: StorageService,
     @InjectModel(Driver.name) private readonly driverModel: Model<Driver>,
     @InjectModel(Ride.name) private readonly rideModel: Model<Ride>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
@@ -33,6 +35,16 @@ export class DriversService {
     const driver = await this.driverModel.findOne({ user_id: user.id }).lean();
     if (!driver) throw new NotFoundException('Driver record missing');
     const updates: any = { ...req };
+    // Atomicity gate: all three documents must be uploaded, else don't submit.
+    updates.profile_photo = await this.storage.verifyOne(
+      req.profile_photo,
+      'driver_profile',
+    );
+    updates.aadhar_photo = await this.storage.verifyOne(
+      req.aadhar_photo,
+      'driver_kyc',
+    );
+    updates.rc_photo = await this.storage.verifyOne(req.rc_photo, 'driver_kyc');
     updates.kyc_status = 'pending';
     updates.submitted_at = now();
     await this.driverModel.updateOne(

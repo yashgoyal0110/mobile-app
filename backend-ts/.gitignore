@@ -3,3 +3,8 @@ dist/
 .env
 *.log
 .DS_Store
+
+# GCP service-account key(s) — never commit
+astral-hold-*.json
+*-service-account*.json
+gcs-*.json

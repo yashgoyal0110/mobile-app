@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { clean, haversineKm, newId, now, round } from '../../common/utils';
 import { Stay } from '../../db/schemas/stay.schema';
+import { StorageService } from '../uploads/storage.service';
 import { AMENITY_KEYS, StayDto, StayUpdateDto } from './stays.dto';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class StaysService {
 
   constructor(
     @InjectModel(Stay.name) private readonly stayModel: Model<Stay>,
+    private readonly storage: StorageService,
   ) {}
 
   private withDistance(stay: any, lat?: number, lng?: number): any {
@@ -119,6 +121,10 @@ export class StaysService {
 
   async adminCreateStay(req: StayDto) {
     this.validateAmenities(req.amenities);
+    // Atomicity gate: confirm every photo is really uploaded before we create.
+    const photos = await this.storage.verifyImages(req.photos, 'stay', {
+      min: 1,
+    });
     const ts = now();
     const doc: any = {
       id: newId(),
@@ -137,7 +143,7 @@ export class StaysService {
       room_types: req.room_types ?? [],
       capacity: req.capacity ?? null,
       amenities: req.amenities ?? [],
-      photos: req.photos ?? [],
+      photos,
       verified: req.verified ?? false,
       available: req.available ?? true,
       featured: req.featured ?? false,
@@ -152,6 +158,12 @@ export class StaysService {
   async adminUpdateStay(stayId: string, req: StayUpdateDto) {
     const updates: Record<string, any> = { ...req };
     if ('amenities' in updates) this.validateAmenities(updates.amenities);
+    // If photos are being changed, verify the new set exists before saving.
+    if ('photos' in updates) {
+      updates.photos = await this.storage.verifyImages(updates.photos, 'stay', {
+        min: 1,
+      });
+    }
     if (Object.keys(updates).length === 0) {
       throw new BadRequestException('No fields to update');
     }

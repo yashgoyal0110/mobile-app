@@ -47,3 +47,38 @@ export const USER_AGENT = 'FifthDigit/1.0 (govardhan-e-rickshaw)';
 export const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017';
 export const DB_NAME = process.env.DB_NAME || 'fifthdigit';
 export const PORT = Number(process.env.PORT || 3002);
+
+// ---- Google Cloud Storage (image uploads) ----
+// Storage is "enabled" only when a bucket name is set. When disabled, image
+// existence verification is skipped (dev fallback) but presence checks still apply.
+export const GCS_BUCKET = process.env.GCS_BUCKET || '';
+export const GCS_PROJECT_ID = process.env.GCS_PROJECT_ID || '';
+// Inline service-account JSON (handy for Cloud Run secrets). If empty, the
+// client falls back to GOOGLE_APPLICATION_CREDENTIALS / ADC.
+export const GCS_CREDENTIALS_JSON = process.env.GCS_CREDENTIALS_JSON || '';
+// Optional CDN / custom-domain base that maps to the bucket. Defaults to the
+// canonical storage.googleapis.com URL.
+export const GCS_PUBLIC_BASE_URL = (process.env.GCS_PUBLIC_BASE_URL || '').replace(
+  /\/+$/,
+  '',
+);
+export const GCS_SIGNED_UPLOAD_TTL_SEC = Number(
+  process.env.GCS_SIGNED_UPLOAD_TTL_SEC || 600,
+);
+export const GCS_SIGNED_READ_TTL_SEC = Number(
+  process.env.GCS_SIGNED_READ_TTL_SEC || 3600,
+);
+export const GCS_MAX_IMAGE_MB = Number(process.env.GCS_MAX_IMAGE_MB || 8);
+// Best-effort per-object makePublic() for fine-grained-ACL buckets. Harmless
+// (caught) on uniform-bucket-level-access buckets, where you instead grant
+// allUsers:objectViewer at the bucket level.
+export const GCS_MAKE_PUBLIC =
+  (process.env.GCS_MAKE_PUBLIC || 'true').toLowerCase() === 'true';
+
+// Image content-types we accept for upload, mapped to file extension.
+export const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};

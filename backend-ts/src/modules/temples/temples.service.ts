@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { clean, haversineKm, newId, now, round } from '../../common/utils';
 import { Temple } from '../../db/schemas/temple.schema';
+import { StorageService } from '../uploads/storage.service';
 import { TempleDto, TempleUpdateDto } from './temples.dto';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class TemplesService {
 
   constructor(
     @InjectModel(Temple.name) private readonly templeModel: Model<Temple>,
+    private readonly storage: StorageService,
   ) {}
 
   private withDistance(t: any, lat?: number, lng?: number): any {
@@ -80,6 +82,10 @@ export class TemplesService {
   }
 
   async adminCreateTemple(req: TempleDto) {
+    // Atomicity gate: confirm every photo is really uploaded before we create.
+    const photos = await this.storage.verifyImages(req.photos, 'temple', {
+      min: 1,
+    });
     const ts = now();
     const doc: any = {
       id: newId(),
@@ -96,7 +102,7 @@ export class TemplesService {
       crowd_level: req.crowd_level ?? null,
       entry_info: req.entry_info ?? null,
       special_note: req.special_note ?? null,
-      photos: req.photos ?? [],
+      photos,
       verified: req.verified ?? false,
       featured: req.featured ?? false,
       created_at: ts,
@@ -110,6 +116,13 @@ export class TemplesService {
 
   async adminUpdateTemple(templeId: string, req: TempleUpdateDto) {
     const updates: Record<string, any> = { ...req };
+    if ('photos' in updates) {
+      updates.photos = await this.storage.verifyImages(
+        updates.photos,
+        'temple',
+        { min: 1 },
+      );
+    }
     if (Object.keys(updates).length === 0) {
       throw new BadRequestException('No fields to update');
     }
