@@ -9,10 +9,12 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { TText } from "../../src/components/TText";
 import { TInput } from "../../src/components/TInput";
 import { TButton } from "../../src/components/TButton";
+import { ImagePickerField } from "../../src/components/ImagePickerField";
 import { api } from "../../src/api";
 import { notify, confirmDialog } from "../../src/utils/dialog";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 import { Temple, DarshanSlot, AartiTiming, CROWD_OPTIONS, CrowdLevel, openStatus } from "../../src/temples";
+import { PhotoItem, photoItemsFromUrls, resolvePhotos } from "../../src/uploads";
 
 type Filter = "all" | "pending" | "verified";
 
@@ -21,6 +23,7 @@ interface Form {
   contact_phone: string; description: string; entry_info: string; special_note: string;
   darshan_slots: DarshanSlot[]; aarti_timings: AartiTiming[];
   crowd_level: CrowdLevel | null; verified: boolean; featured: boolean;
+  photos: PhotoItem[];
 }
 
 const EMPTY_FORM: Form = {
@@ -28,6 +31,7 @@ const EMPTY_FORM: Form = {
   contact_phone: "", description: "", entry_info: "", special_note: "",
   darshan_slots: [{ label: "", open: "05:00", close: "12:00" }],
   aarti_timings: [], crowd_level: null, verified: true, featured: false,
+  photos: [],
 };
 
 export default function AdminTemples() {
@@ -69,6 +73,7 @@ export default function AdminTemples() {
       darshan_slots: (t.darshan_slots || []).map((s) => ({ label: s.label || "", open: s.open, close: s.close })),
       aarti_timings: (t.aarti_timings || []).map((a) => ({ name: a.name, time: a.time })),
       crowd_level: t.crowd_level || null, verified: !!t.verified, featured: !!t.featured,
+      photos: photoItemsFromUrls(t.photos),
     });
     setModalOpen(true);
   };
@@ -89,6 +94,10 @@ export default function AdminTemples() {
   const save = async () => {
     if (!form.name.trim() || !form.address.trim()) {
       notify("Missing fields", "Name and address are required.");
+      return;
+    }
+    if (form.photos.length === 0) {
+      notify("Add a photo", "Please add at least one photo of the temple.");
       return;
     }
     const slots = form.darshan_slots.filter((s) => s.open && s.close);
@@ -113,6 +122,8 @@ export default function AdminTemples() {
     };
     setSaving(true);
     try {
+      // Upload any newly-picked images first; abort the save if upload fails.
+      payload.photos = await resolvePhotos(form.photos, "temple", 1);
       if (editingId) await api(`/admin/temples/${editingId}`, { method: "PATCH", body: payload });
       else await api("/admin/temples", { method: "POST", body: payload });
       setModalOpen(false);
@@ -220,6 +231,17 @@ export default function AdminTemples() {
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}>
               <TInput label="Name *" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} placeholder="Daan Ghati Mandir" testID="temple-form-name" />
+
+              <ImagePickerField
+                label="Photos"
+                required
+                value={form.photos}
+                onChange={(photos) => setForm({ ...form, photos })}
+                max={6}
+                hint="Add at least 1 photo. First photo is the cover."
+                testID="temple-form-photos"
+              />
+
               <TInput label="Deity" value={form.deity} onChangeText={(v) => setForm({ ...form, deity: v })} placeholder="Shri Giriraj Ji" />
               <TInput label="Area" value={form.area} onChangeText={(v) => setForm({ ...form, area: v })} placeholder="Daan Ghati / Jatipura" />
               <TInput label="Address *" value={form.address} onChangeText={(v) => setForm({ ...form, address: v })} placeholder="Full address" multiline />

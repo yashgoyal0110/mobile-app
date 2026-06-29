@@ -52,6 +52,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#F4EDE1"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FifthDigit needs access to your photos to upload stay, temple and KYC images.",
+          "cameraPermission": "FifthDigit needs camera access to capture KYC documents."
+        }
       ]
     ],
     "experiments": {

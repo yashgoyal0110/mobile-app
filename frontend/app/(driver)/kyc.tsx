@@ -6,11 +6,17 @@ import { TText } from "../../src/components/TText";
 import { TInput } from "../../src/components/TInput";
 import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
+import { ImagePickerField } from "../../src/components/ImagePickerField";
 import { api } from "../../src/api";
 import { useAuth } from "../../src/auth";
 import { colors, radius, spacing } from "../../src/theme";
+import { PhotoItem, resolvePhotos } from "../../src/uploads";
 
 const STEPS = ["Personal", "Vehicle", "UPI"];
+
+// Only pre-fill from a previously stored https URL (skip legacy mock data: URIs).
+const prefill = (v?: string): PhotoItem[] =>
+  v && /^https?:\/\//.test(v) ? [{ key: "existing", url: v }] : [];
 
 export default function DriverKYC() {
   const { driver, refresh, user } = useAuth();
@@ -20,6 +26,9 @@ export default function DriverKYC() {
   const [vehicleNo, setVehicleNo] = useState(driver?.vehicle_no || "");
   const [vehicleType, setVehicleType] = useState("e-rickshaw");
   const [upiId, setUpiId] = useState(driver?.upi_id || "");
+  const [profilePhoto, setProfilePhoto] = useState<PhotoItem[]>(prefill(driver?.profile_photo));
+  const [aadharPhoto, setAadharPhoto] = useState<PhotoItem[]>(prefill(driver?.aadhar_photo));
+  const [rcPhoto, setRcPhoto] = useState<PhotoItem[]>(prefill(driver?.rc_photo));
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
@@ -35,20 +44,32 @@ export default function DriverKYC() {
       Alert.alert("Invalid UPI", "UPI ID must be like name@bank");
       return;
     }
+    if (profilePhoto.length === 0 || aadharPhoto.length === 0) {
+      Alert.alert("Photos needed", "Add your profile photo and Aadhar photo (Step 1).");
+      setStep(0);
+      return;
+    }
+    if (rcPhoto.length === 0) {
+      Alert.alert("Photo needed", "Add your vehicle RC photo (Step 2).");
+      setStep(1);
+      return;
+    }
     setSubmitting(true);
     try {
-      // Mock photo bytes (small base64) since we don't have image picker installed
-      const mockImg = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+      // Upload all documents first; if any fails, KYC is not submitted.
+      const [profileUrl] = await resolvePhotos(profilePhoto, "driver_profile", 1);
+      const [aadharUrl] = await resolvePhotos(aadharPhoto, "driver_kyc", 1);
+      const [rcUrl] = await resolvePhotos(rcPhoto, "driver_kyc", 1);
       await api("/drivers/kyc", {
         method: "POST",
         body: {
           name,
           aadhar_number: aadhar,
-          aadhar_photo: mockImg,
+          aadhar_photo: aadharUrl,
           vehicle_no: vehicleNo.toUpperCase(),
           vehicle_type: vehicleType,
-          rc_photo: mockImg,
-          profile_photo: mockImg,
+          rc_photo: rcUrl,
+          profile_photo: profileUrl,
           upi_id: upiId,
         },
       });
@@ -93,7 +114,7 @@ export default function DriverKYC() {
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Feather name="check-circle" size={22} color={colors.success} />
               <View style={{ marginLeft: spacing.md, flex: 1 }}>
-                <TText variant="bodyLg" weight="700" color={colors.success}>You're verified!</TText>
+                <TText variant="bodyLg" weight="700" color={colors.success}>{"You're verified!"}</TText>
                 <TText variant="bodySm" muted>Re-submit to update vehicle details (re-verification required)</TText>
               </View>
             </View>
@@ -132,11 +153,25 @@ export default function DriverKYC() {
                 testID="kyc-aadhar"
                 maxLength={12}
               />
-              <View style={styles.upload}>
-                <Feather name="upload-cloud" size={28} color={colors.primaryDark} />
-                <TText variant="bodySm" weight="600" style={{ marginTop: 6 }}>Aadhar photo (auto-mocked for demo)</TText>
-                <TText variant="caption" muted>Real photo upload coming in next release</TText>
-              </View>
+              <View style={{ height: spacing.sm }} />
+              <ImagePickerField
+                label="Your photo (selfie)"
+                required
+                max={1}
+                value={profilePhoto}
+                onChange={setProfilePhoto}
+                hint="Clear face photo for your driver profile."
+                testID="kyc-profile-photo"
+              />
+              <ImagePickerField
+                label="Aadhar card photo"
+                required
+                max={1}
+                value={aadharPhoto}
+                onChange={setAadharPhoto}
+                hint="Used only for verification — kept private."
+                testID="kyc-aadhar-photo"
+              />
             </>
           )}
           {step === 1 && (
@@ -150,10 +185,16 @@ export default function DriverKYC() {
                 autoCapitalize="characters"
               />
               <TInput label="Vehicle type" value={vehicleType} onChangeText={setVehicleType} testID="kyc-vehicle-type" />
-              <View style={styles.upload}>
-                <Feather name="upload-cloud" size={28} color={colors.primaryDark} />
-                <TText variant="bodySm" weight="600" style={{ marginTop: 6 }}>Vehicle RC photo (auto-mocked)</TText>
-              </View>
+              <View style={{ height: spacing.sm }} />
+              <ImagePickerField
+                label="Vehicle RC photo"
+                required
+                max={1}
+                value={rcPhoto}
+                onChange={setRcPhoto}
+                hint="Registration certificate of your e-rickshaw."
+                testID="kyc-rc-photo"
+              />
             </>
           )}
           {step === 2 && (
@@ -203,15 +244,5 @@ const styles = StyleSheet.create({
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.border,
     alignItems: "center", justifyContent: "center",
-  },
-  upload: {
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.primary + "60",
-    borderStyle: "dashed",
-    alignItems: "center",
-    backgroundColor: colors.primaryLight,
   },
 });
