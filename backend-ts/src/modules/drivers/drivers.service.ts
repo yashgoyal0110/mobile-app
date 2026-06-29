@@ -34,6 +34,13 @@ export class DriversService {
   async submitKyc(req: KycDto, user: any) {
     const driver = await this.driverModel.findOne({ user_id: user.id }).lean();
     if (!driver) throw new NotFoundException('Driver record missing');
+    // Once approved, details are locked — the admin must re-open (reject) KYC
+    // before the driver can change anything.
+    if ((driver as any).kyc_status === 'approved') {
+      throw new ForbiddenException(
+        'Your KYC is already approved. Please contact the admin to change your details.',
+      );
+    }
     const updates: any = { ...req };
     // Atomicity gate: all three documents must be uploaded, else don't submit.
     updates.profile_photo = await this.storage.verifyOne(
