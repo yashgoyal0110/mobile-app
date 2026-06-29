@@ -74,6 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Explicit sign-out only: if a driver signs out, mark them offline while the
+    // token is still valid. We intentionally do NOT do this on app close / token
+    // expiry — a driver stays online across app restarts unless they sign out.
+    if (user?.role === "driver") {
+      try {
+        await api("/drivers/online", { method: "POST", body: { online: false } });
+      } catch {}
+    }
     await setToken(null);
     setTokenState(null);
     setUser(null);
