@@ -19,7 +19,10 @@ SAMPLE_STAYS = [
         "room_types": ["Single", "Double", "Family"],
         "capacity": 60,
         "amenities": ["parking", "food", "hot_water", "family_rooms", "elderly_friendly", "power_backup"],
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Guest_house_building_of_Kapurthala_01.jpg/1280px-Guest_house_building_of_Kapurthala_01.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Hotel_room_interior_at_hotel_Radisson_Blu_Oulu.jpg/1280px-Hotel_room_interior_at_hotel_Radisson_Blu_Oulu.jpg",
+        ],
         "verified": True, "available": True, "featured": True,
     },
     {
@@ -36,7 +39,10 @@ SAMPLE_STAYS = [
         "room_types": ["Dormitory", "Single"],
         "capacity": 40,
         "amenities": ["food", "hot_water", "locker"],
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Radha_Keli_Kunj_Ashram_DSC04434.jpg/1280px-Radha_Keli_Kunj_Ashram_DSC04434.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Temple_in_Radha-Kund_7%2C_Mars_2007.jpg/1280px-Temple_in_Radha-Kund_7%2C_Mars_2007.jpg",
+        ],
         "verified": True, "available": True, "featured": False,
     },
     {
@@ -53,7 +59,10 @@ SAMPLE_STAYS = [
         "room_types": ["Double", "Family", "Deluxe AC"],
         "capacity": 30,
         "amenities": ["parking", "ac", "hot_water", "wifi", "family_rooms", "power_backup", "lift"],
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Entrance_Guest_House_IITGN_Gujarat_Sep25_A7CR_07905.jpg/1280px-Entrance_Guest_House_IITGN_Gujarat_Sep25_A7CR_07905.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Hotel_room_interior_at_hotel_Radisson_Blu_Oulu.jpg/1280px-Hotel_room_interior_at_hotel_Radisson_Blu_Oulu.jpg",
+        ],
         "verified": True, "available": True, "featured": True,
     },
     {
@@ -70,7 +79,10 @@ SAMPLE_STAYS = [
         "room_types": ["Single", "Double"],
         "capacity": 24,
         "amenities": ["parking", "hot_water", "elderly_friendly", "wheelchair"],
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Kusum_Sarovar_-Mathura_-Uttar_Pradesh_-PXL_20210217_100743045.jpg/1280px-Kusum_Sarovar_-Mathura_-Uttar_Pradesh_-PXL_20210217_100743045.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/8/84/Premier-hotel-bedroom_Huehuetenango_Guatemala.jpg",
+        ],
         "verified": True, "available": True, "featured": False,
     },
 ]
@@ -100,7 +112,10 @@ SAMPLE_TEMPLES = [
         "crowd_level": "moderate",
         "entry_info": "Free entry. Milk/abhishek samagri available outside.",
         "special_note": None,
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Govardhan_hill.JPG/1280px-Govardhan_hill.JPG",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Shri_Govardhan_Dham_-_panoramio.jpg/1280px-Shri_Govardhan_Dham_-_panoramio.jpg",
+        ],
         "verified": True, "featured": True,
     },
     {
@@ -124,7 +139,10 @@ SAMPLE_TEMPLES = [
         "crowd_level": "high",
         "entry_info": "Free entry.",
         "special_note": "Heavy crowd on Ekadashi & Purnima — arrive early.",
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Daan_Ghati_Temple_in_Govardhan_2014-10-03.jpg/1280px-Daan_Ghati_Temple_in_Govardhan_2014-10-03.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Daan_Ghati_Temple_Goverdhan_-_panoramio.jpg/1280px-Daan_Ghati_Temple_Goverdhan_-_panoramio.jpg",
+        ],
         "verified": True, "featured": True,
     },
     {
@@ -147,7 +165,10 @@ SAMPLE_TEMPLES = [
         "crowd_level": "low",
         "entry_info": "Free. Snan ghats open through the day.",
         "special_note": None,
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Radha_Kund.jpg/1280px-Radha_Kund.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Shyam_Kund.jpg/1280px-Shyam_Kund.jpg",
+        ],
         "verified": True, "featured": False,
     },
     {
@@ -169,7 +190,10 @@ SAMPLE_TEMPLES = [
         "crowd_level": "low",
         "entry_info": "Free entry.",
         "special_note": None,
-        "photos": [],
+        "photos": [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Kusum_Sarovar_Mathura_DSC_2124.jpg/1280px-Kusum_Sarovar_Mathura_DSC_2124.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Inside_of_kusum_Sarovar_Chhatris.jpg/1280px-Inside_of_kusum_Sarovar_Chhatris.jpg",
+        ],
         "verified": True, "featured": False,
     },
 ]
@@ -217,6 +241,7 @@ async def ensure_seed():
 
     # Seed sample dharamshalas/guest-houses once (so the Stays tab is never empty
     # in a demo). Upserts by id, never overwrites admin edits made later.
+    # If a row already exists but has no photos yet, backfill the sample photos.
     for stay in SAMPLE_STAYS:
         existing = await db.stays.find_one({"id": stay["id"]})
         if not existing:
@@ -224,6 +249,11 @@ async def ensure_seed():
             doc["created_at"] = now()
             doc["updated_at"] = now()
             await db.stays.insert_one(doc)
+        elif not existing.get("photos") and stay.get("photos"):
+            await db.stays.update_one(
+                {"id": stay["id"]},
+                {"$set": {"photos": stay["photos"], "updated_at": now()}},
+            )
 
     # Seed sample temples once (Temples tab never empty in a demo).
     for temple in SAMPLE_TEMPLES:
@@ -234,6 +264,11 @@ async def ensure_seed():
             doc["updated_at"] = now()
             doc["crowd_updated_at"] = now() if doc.get("crowd_level") else None
             await db.temples.insert_one(doc)
+        elif not existing.get("photos") and temple.get("photos"):
+            await db.temples.update_one(
+                {"id": temple["id"]},
+                {"$set": {"photos": temple["photos"], "updated_at": now()}},
+            )
 
 
 async def ensure_indexes():
