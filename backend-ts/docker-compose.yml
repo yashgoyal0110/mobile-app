@@ -25,10 +25,10 @@ services:
     env_file:
       - .env
     # Mount the GCP service-account key into the container (it is NOT baked into
-    # the image). Put the key on the VM at backend-ts/gcs-key.json before
+    # the image). The key must exist on the VM at the path below before
     # `docker compose up`. Remove this block if you're not using image uploads.
     volumes:
-      - ./gcs-key.json:/secrets/gcs-key.json:ro
+      - ./astral-hold-499011-g6-45c2aa6a230e.json:/secrets/gcs-key.json:ro
     environment:
       PORT: 3002
       # Points the GCS client at the mounted key (overrides any value in .env).
