@@ -20,9 +20,16 @@ services:
     # Host 3002  ->  container 3002 (outer world hits :3002)
     ports:
       - "3002:3002"
-    # MONGO_URL, DB_NAME, JWT_SECRET, ADMIN_PHONES, MOCK_OTP, GEO_* are read
-    # from .env (copy from .env.example). PORT is pinned here.
+    # MONGO_URL, DB_NAME, JWT_SECRET, ADMIN_PHONES, MOCK_OTP, GEO_*, GCS_* are
+    # read from .env (copy from .env.example). PORT is pinned here.
     env_file:
       - .env
+    # Mount the GCP service-account key into the container (it is NOT baked into
+    # the image). Put the key on the VM at backend-ts/gcs-key.json before
+    # `docker compose up`. Remove this block if you're not using image uploads.
+    volumes:
+      - ./gcs-key.json:/secrets/gcs-key.json:ro
     environment:
       PORT: 3002
+      # Points the GCS client at the mounted key (overrides any value in .env).
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcs-key.json
