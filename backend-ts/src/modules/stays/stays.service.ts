@@ -159,7 +159,10 @@ export class StaysService {
     const updates: Record<string, any> = { ...req };
     if ('amenities' in updates) this.validateAmenities(updates.amenities);
     // If photos are being changed, verify the new set exists before saving.
+    let oldPhotos: string[] | null = null;
     if ('photos' in updates) {
+      const existing = await this.stayModel.findOne({ id: stayId }).lean();
+      oldPhotos = ((existing as any)?.photos as string[]) || [];
       updates.photos = await this.storage.verifyImages(updates.photos, 'stay', {
         min: 1,
       });
@@ -173,6 +176,8 @@ export class StaysService {
       { $set: updates },
     );
     if (res.matchedCount === 0) throw new NotFoundException('Stay not found');
+    // Remove now-unreferenced images from the bucket (best-effort).
+    if (oldPhotos) await this.storage.deleteRemoved(oldPhotos, updates.photos);
     const fresh = await this.stayModel.findOne({ id: stayId }).lean();
     this.logger.log(
       `Stay updated id=${stayId} fields=[${Object.keys(updates)
@@ -183,8 +188,11 @@ export class StaysService {
   }
 
   async adminDeleteStay(stayId: string) {
+    const existing = await this.stayModel.findOne({ id: stayId }).lean();
     const res = await this.stayModel.deleteOne({ id: stayId });
     if (res.deletedCount === 0) throw new NotFoundException('Stay not found');
+    // Remove its images from the bucket (best-effort).
+    await this.storage.deleteRemoved(((existing as any)?.photos as string[]) || [], []);
     this.logger.log(`Stay deleted id=${stayId}`);
     return { ok: true };
   }

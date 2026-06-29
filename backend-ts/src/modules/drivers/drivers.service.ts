@@ -64,6 +64,12 @@ export class DriversService {
         { $set: { name: req.name } },
       );
     }
+    // Clean up any documents that were replaced during a re-submit (best-effort).
+    const d = driver as any;
+    await this.storage.deleteRemoved(
+      [d.profile_photo, d.aadhar_photo, d.rc_photo].filter(Boolean),
+      [updates.profile_photo, updates.aadhar_photo, updates.rc_photo],
+    );
     const fresh = await this.driverModel.findOne({ user_id: user.id }).lean();
     this.logger.log(
       `KYC submitted driver=${user.id} vehicle=${req.vehicle_no}`,

@@ -243,6 +243,23 @@ export class StorageService {
     }
   }
 
+  /**
+   * Delete objects that were in `oldValues` but are no longer in `keepValues`
+   * (i.e. images removed/replaced during an edit). Best-effort; never throws.
+   * Call AFTER the DB update succeeds.
+   */
+  async deleteRemoved(oldValues: string[] = [], keepValues: string[] = []): Promise<void> {
+    if (!this.enabled) return;
+    const keep = new Set(
+      keepValues.map((v) => this.keyFromValue(v)).filter(Boolean) as string[],
+    );
+    const removed = (oldValues || []).filter((v) => {
+      const k = this.keyFromValue(v);
+      return k && !keep.has(k);
+    });
+    await Promise.all(removed.map((v) => this.deleteByValue(v)));
+  }
+
   // ---------- internals ----------
   private async statObject(
     key: string,

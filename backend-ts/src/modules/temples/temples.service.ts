@@ -116,7 +116,10 @@ export class TemplesService {
 
   async adminUpdateTemple(templeId: string, req: TempleUpdateDto) {
     const updates: Record<string, any> = { ...req };
+    let oldPhotos: string[] | null = null;
     if ('photos' in updates) {
+      const existing = await this.templeModel.findOne({ id: templeId }).lean();
+      oldPhotos = ((existing as any)?.photos as string[]) || [];
       updates.photos = await this.storage.verifyImages(
         updates.photos,
         'temple',
@@ -135,6 +138,8 @@ export class TemplesService {
       { $set: updates },
     );
     if (res.matchedCount === 0) throw new NotFoundException('Temple not found');
+    // Remove now-unreferenced images from the bucket (best-effort).
+    if (oldPhotos) await this.storage.deleteRemoved(oldPhotos, updates.photos);
     const fresh = await this.templeModel.findOne({ id: templeId }).lean();
     this.logger.log(
       `Temple updated id=${templeId} fields=[${Object.keys(updates)
@@ -145,8 +150,11 @@ export class TemplesService {
   }
 
   async adminDeleteTemple(templeId: string) {
+    const existing = await this.templeModel.findOne({ id: templeId }).lean();
     const res = await this.templeModel.deleteOne({ id: templeId });
     if (res.deletedCount === 0) throw new NotFoundException('Temple not found');
+    // Remove its images from the bucket (best-effort).
+    await this.storage.deleteRemoved(((existing as any)?.photos as string[]) || [], []);
     this.logger.log(`Temple deleted id=${templeId}`);
     return { ok: true };
   }
