@@ -9,7 +9,11 @@
  * form.
  */
 import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { api } from "./api";
+
+// Downscale anything wider than this before upload (keeps uploads fast/small).
+const MAX_WIDTH = 1600;
 
 export interface PickedImage {
   uri: string;
@@ -23,63 +27,55 @@ export interface PhotoItem {
   local?: PickedImage;
 }
 
-const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
-const EXT_CT: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-};
-
 let keySeq = 0;
 export function newPhotoKey(): string {
   keySeq += 1;
   return `p_${Date.now()}_${keySeq}`;
 }
 
-function normalizeContentType(asset: ImagePicker.ImagePickerAsset): string {
-  let ct = (asset.mimeType || "").toLowerCase();
-  if (ct === "image/jpg") ct = "image/jpeg";
-  if (!ALLOWED.includes(ct)) {
-    const ext = (asset.uri.split("?")[0].split(".").pop() || "").toLowerCase();
-    ct = EXT_CT[ext] || "";
-  }
-  return ct;
+/**
+ * Normalise + downscale a picked asset: resize to <= MAX_WIDTH and re-encode as
+ * JPEG (~0.7 quality). Output is always image/jpeg, so uploads stay small and
+ * the content-type is always accepted by the backend.
+ */
+async function processImage(asset: ImagePicker.ImagePickerAsset): Promise<PickedImage> {
+  const actions =
+    asset.width && asset.width > MAX_WIDTH ? [{ resize: { width: MAX_WIDTH } }] : [];
+  const out = await manipulateAsync(asset.uri, actions, {
+    compress: 0.7,
+    format: SaveFormat.JPEG,
+  });
+  return { uri: out.uri, contentType: "image/jpeg" };
 }
 
-export async function pickImages(max = 1): Promise<PickedImage[]> {
+/**
+ * Pick one image from the library with the built-in editor enabled, so the user
+ * can crop / rotate / zoom (adjust) before upload. Returns a single, downscaled
+ * image. (Editing requires single selection, so photos are added one at a time.)
+ */
+export async function pickImages(_max = 1): Promise<PickedImage[]> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (perm.status !== "granted") {
     throw new Error("Photo library permission is required to add images.");
   }
   const res = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: "images",
-    allowsMultipleSelection: max > 1,
-    selectionLimit: max,
-    quality: 0.7,
+    allowsEditing: true,
+    quality: 1, // re-compressed in processImage
   });
   if (res.canceled) return [];
-  const picked = res.assets
-    .map((a) => ({ uri: a.uri, contentType: normalizeContentType(a) }))
-    .filter((p) => !!p.contentType);
-  if (picked.length < res.assets.length) {
-    throw new Error("Some images were an unsupported format (use JPG, PNG or WEBP).");
-  }
-  return picked;
+  return [await processImage(res.assets[0])];
 }
 
-/** Take a photo with the camera (handy for KYC docs). */
+/** Take a photo with the camera (with editor), handy for KYC docs. */
 export async function captureImage(): Promise<PickedImage | null> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (perm.status !== "granted") {
     throw new Error("Camera permission is required.");
   }
-  const res = await ImagePicker.launchCameraAsync({ quality: 0.7 });
+  const res = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1 });
   if (res.canceled) return null;
-  const a = res.assets[0];
-  const ct = normalizeContentType(a);
-  if (!ct) throw new Error("Unsupported image format (use JPG, PNG or WEBP).");
-  return { uri: a.uri, contentType: ct };
+  return processImage(res.assets[0]);
 }
 
 async function putWithRetry(

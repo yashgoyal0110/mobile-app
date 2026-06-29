@@ -6,9 +6,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { Image } from "expo-image";
 import { TText } from "../../src/components/TText";
 import { Card } from "../../src/components/Card";
+import { ImageCarousel } from "../../src/components/ImageCarousel";
 import { api } from "../../src/api";
 import { notify } from "../../src/utils/dialog";
 import { colors, radius, spacing, shadows } from "../../src/theme";
@@ -75,13 +75,8 @@ export default function TempleDetail() {
     <SafeAreaView style={styles.safe} edges={["top"]} testID="passenger-temple-detail">
       <Header onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          {temple.photos && temple.photos.length > 0 ? (
-            <Image source={{ uri: temple.photos[0] }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <Feather name="home" size={48} color={colors.parikrama} />
-          )}
-        </View>
+        {/* Photo gallery (swipeable) */}
+        <ImageCarousel photos={temple.photos} height={200} fallbackIcon="sunrise" />
 
         <View style={{ marginTop: spacing.lg }}>
           <TText variant="h2">{temple.name}</TText>
@@ -227,10 +222,6 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   scroll: { padding: spacing.lg },
-  hero: {
-    height: 180, borderRadius: radius.lg, backgroundColor: "#FFF5E1",
-    alignItems: "center", justifyContent: "center", overflow: "hidden",
-  },
   statusRow: { flexDirection: "row", gap: 8, marginTop: spacing.md, flexWrap: "wrap" },
   bigStatus: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.pill },
   dot: { width: 7, height: 7, borderRadius: 4, marginRight: 6 },
