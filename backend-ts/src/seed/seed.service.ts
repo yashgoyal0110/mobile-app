@@ -81,6 +81,7 @@ export class SeedService implements OnApplicationBootstrap {
     }
 
     // Seed sample stays once (Stays tab never empty in a demo).
+    // If a row already exists but has no photos yet, backfill the sample photos.
     for (const stay of SAMPLE_STAYS) {
       const existing = await this.stayModel.findOne({ id: stay.id }).lean();
       if (!existing) {
@@ -89,6 +90,11 @@ export class SeedService implements OnApplicationBootstrap {
           created_at: now(),
           updated_at: now(),
         });
+      } else if (!existing.photos?.length && stay.photos?.length) {
+        await this.stayModel.updateOne(
+          { id: stay.id },
+          { $set: { photos: stay.photos, updated_at: now() } },
+        );
       }
     }
 
@@ -104,6 +110,11 @@ export class SeedService implements OnApplicationBootstrap {
           updated_at: now(),
           crowd_updated_at: temple.crowd_level ? now() : null,
         });
+      } else if (!existing.photos?.length && temple.photos?.length) {
+        await this.templeModel.updateOne(
+          { id: temple.id },
+          { $set: { photos: temple.photos, updated_at: now() } },
+        );
       }
     }
   }
