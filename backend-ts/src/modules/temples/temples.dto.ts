@@ -65,6 +65,10 @@ export class TempleDto {
   photos: string[] = [];
 
   @IsOptional()
+  @IsArray()
+  prasad_items: any[] = [];
+
+  @IsOptional()
   @IsBoolean()
   verified: boolean = false;
 
@@ -88,6 +92,7 @@ export class TempleUpdateDto {
   @IsOptional() @IsString() entry_info?: string;
   @IsOptional() @IsString() special_note?: string;
   @IsOptional() @IsArray() photos?: string[];
+  @IsOptional() @IsArray() prasad_items?: any[];
   @IsOptional() @IsBoolean() verified?: boolean;
   @IsOptional() @IsBoolean() featured?: boolean;
 }

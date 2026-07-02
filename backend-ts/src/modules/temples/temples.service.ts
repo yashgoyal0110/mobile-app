@@ -21,6 +21,21 @@ export class TemplesService {
     private readonly storage: StorageService,
   ) {}
 
+  /** Normalise admin-entered prasad items: ensure id, trimmed name, numeric price. */
+  private normalizePrasad(items?: any[]): any[] {
+    if (!Array.isArray(items)) return [];
+    return items
+      .map((it) => ({
+        id: it?.id || newId(),
+        name: String(it?.name ?? '').trim(),
+        price: Number(it?.price),
+        description: it?.description ? String(it.description).trim() : null,
+        image: it?.image ? String(it.image).trim() : null,
+        available: it?.available !== false,
+      }))
+      .filter((it) => it.name && Number.isFinite(it.price) && it.price >= 0);
+  }
+
   private withDistance(t: any, lat?: number, lng?: number): any {
     const out: any = clean(t);
     if (lat != null && lng != null && t.lat != null && t.lng != null) {
@@ -103,6 +118,7 @@ export class TemplesService {
       entry_info: req.entry_info ?? null,
       special_note: req.special_note ?? null,
       photos,
+      prasad_items: this.normalizePrasad(req.prasad_items),
       verified: req.verified ?? false,
       featured: req.featured ?? false,
       created_at: ts,
@@ -128,6 +144,9 @@ export class TemplesService {
     }
     if (Object.keys(updates).length === 0) {
       throw new BadRequestException('No fields to update');
+    }
+    if ('prasad_items' in updates) {
+      updates.prasad_items = this.normalizePrasad(updates.prasad_items);
     }
     if ('crowd_level' in updates) {
       updates.crowd_updated_at = updates.crowd_level ? now() : null;

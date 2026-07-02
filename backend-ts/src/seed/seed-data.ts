@@ -173,6 +173,11 @@ export const SAMPLE_TEMPLES: Record<string, any>[] = [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Govardhan_hill.JPG/1280px-Govardhan_hill.JPG',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Shri_Govardhan_Dham_-_panoramio.jpg/1280px-Shri_Govardhan_Dham_-_panoramio.jpg',
     ],
+    prasad_items: [
+      { id: 'pr-mukh-peda', name: 'Mathura Peda', price: 51, description: 'Famous Mathura milk peda, offered to Giriraj Ji.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Mathura_Peda.jpg?width=600', available: true },
+      { id: 'pr-mukh-laddu', name: 'Motichoor Laddu', price: 101, description: 'Box of fresh motichoor laddus.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Motichoor_Laddu.jpg?width=600', available: true },
+      { id: 'pr-mukh-barfi', name: 'Milk Barfi', price: 61, description: 'Soft milk barfi bhog.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Barfi.jpg?width=600', available: true },
+    ],
     verified: true,
     featured: true,
   },
@@ -203,6 +208,11 @@ export const SAMPLE_TEMPLES: Record<string, any>[] = [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Daan_Ghati_Temple_in_Govardhan_2014-10-03.jpg/1280px-Daan_Ghati_Temple_in_Govardhan_2014-10-03.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Daan_Ghati_Temple_Goverdhan_-_panoramio.jpg/1280px-Daan_Ghati_Temple_Goverdhan_-_panoramio.jpg',
     ],
+    prasad_items: [
+      { id: 'pr-daan-laddu', name: 'Besan Laddu', price: 51, description: 'Traditional besan laddu prasad.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Besan_ladoo.jpg?width=600', available: true },
+      { id: 'pr-daan-peda', name: 'Kesar Peda', price: 41, description: 'Saffron peda, freshly prepared.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Peda.jpg?width=600', available: true },
+      { id: 'pr-daan-jalebi', name: 'Jalebi', price: 31, description: 'Hot jalebi (per 250g).', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Jalebi.jpg?width=600', available: true },
+    ],
     verified: true,
     featured: true,
   },
@@ -230,6 +240,10 @@ export const SAMPLE_TEMPLES: Record<string, any>[] = [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Radha_Kund.jpg/1280px-Radha_Kund.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Shyam_Kund.jpg/1280px-Shyam_Kund.jpg',
     ],
+    prasad_items: [
+      { id: 'pr-radha-barfi', name: 'Milk Barfi', price: 61, description: 'Milk barfi bhog for Radha Rani.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Barfi.jpg?width=600', available: true },
+      { id: 'pr-radha-peda', name: 'Milk Peda', price: 41, description: 'Classic milk peda.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Milk_Peda.jpg?width=600', available: true },
+    ],
     verified: true,
     featured: false,
   },
@@ -253,6 +267,10 @@ export const SAMPLE_TEMPLES: Record<string, any>[] = [
     photos: [
       'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Kusum_Sarovar_Mathura_DSC_2124.jpg/1280px-Kusum_Sarovar_Mathura_DSC_2124.jpg',
       'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Inside_of_kusum_Sarovar_Chhatris.jpg/1280px-Inside_of_kusum_Sarovar_Chhatris.jpg',
+    ],
+    prasad_items: [
+      { id: 'pr-kusum-peda', name: 'Milk Peda', price: 51, description: 'Fresh milk peda prasad.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Milk_Peda.jpg?width=600', available: true },
+      { id: 'pr-kusum-laddu', name: 'Motichoor Laddu', price: 101, description: 'Box of motichoor laddus.', image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Motichoor_Laddu.jpg?width=600', available: true },
     ],
     verified: true,
     featured: false,

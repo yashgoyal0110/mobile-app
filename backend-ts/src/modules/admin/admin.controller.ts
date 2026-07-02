@@ -100,9 +100,4 @@ export class AdminController {
   markWithdrawalPaid(@Param('wid') wid: string) {
     return this.admin.markWithdrawalPaid(wid);
   }
-
-  @Post('suggestions/:sid/apply')
-  applySuggestion(@Param('sid') sid: string) {
-    return this.admin.applySuggestion(sid);
-  }
 }

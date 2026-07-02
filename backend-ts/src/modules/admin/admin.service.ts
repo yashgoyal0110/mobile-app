@@ -14,7 +14,6 @@ import { Ride } from '../../db/schemas/ride.schema';
 import { User } from '../../db/schemas/user.schema';
 import { Complaint } from '../../db/schemas/complaint.schema';
 import { Withdrawal } from '../../db/schemas/withdrawal.schema';
-import { FareSuggestion } from '../../db/schemas/fare-suggestion.schema';
 import { StorageService } from '../uploads/storage.service';
 import { LandmarkDto, LandmarkUpdateDto } from './admin.dto';
 
@@ -55,8 +54,6 @@ export class AdminService {
     private readonly complaintModel: Model<Complaint>,
     @InjectModel(Withdrawal.name)
     private readonly withdrawalModel: Model<Withdrawal>,
-    @InjectModel(FareSuggestion.name)
-    private readonly suggestionModel: Model<FareSuggestion>,
     private readonly storage: StorageService,
   ) {}
 
@@ -387,31 +384,4 @@ export class AdminService {
     return { ok: true };
   }
 
-  // ---------- Apply driver suggestion ----------
-  async applySuggestion(sid: string) {
-    const s = await this.suggestionModel.findOne({ id: sid }).lean();
-    if (!s) throw new NotFoundException('Not found');
-    const rt = (s as any).ride_type;
-    const fieldMap: Record<string, string> = {
-      'local-base': 'base_fare',
-      'local-per-km': 'per_km',
-      poochari: 'poochari_fare',
-      radhakund: 'radhakund_fare',
-      combined: 'combined_fare',
-    };
-    const field = fieldMap[rt];
-    if (!field) throw new BadRequestException('Unknown ride_type');
-    await this.fareConfigModel.updateOne(
-      { id: 'default' },
-      { $set: { [field]: (s as any).amount, updated_at: now() } },
-    );
-    await this.suggestionModel.updateOne(
-      { id: sid },
-      { $set: { status: 'applied' } },
-    );
-    this.logger.log(
-      `Fare suggestion applied id=${sid} field=${field} amount=${(s as any).amount}`,
-    );
-    return { ok: true };
-  }
 }

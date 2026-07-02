@@ -110,11 +110,20 @@ export class SeedService implements OnApplicationBootstrap {
           updated_at: now(),
           crowd_updated_at: temple.crowd_level ? now() : null,
         });
-      } else if (!existing.photos?.length && temple.photos?.length) {
-        await this.templeModel.updateOne(
-          { id: temple.id },
-          { $set: { photos: temple.photos, updated_at: now() } },
-        );
+      } else {
+        // Backfill photos / prasad items onto temples seeded before these
+        // fields existed (so a re-seed on restart adds them).
+        const set: Record<string, any> = {};
+        if (!existing.photos?.length && temple.photos?.length) {
+          set.photos = temple.photos;
+        }
+        if (!(existing as any).prasad_items?.length && temple.prasad_items?.length) {
+          set.prasad_items = temple.prasad_items;
+        }
+        if (Object.keys(set).length) {
+          set.updated_at = now();
+          await this.templeModel.updateOne({ id: temple.id }, { $set: set });
+        }
       }
     }
   }

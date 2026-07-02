@@ -94,3 +94,5 @@ credentials.json
 frontend/.metro-cache/
 .metro-cache/
 astral-hold-499011-g6-45c2aa6a230e.json
+
+startup/

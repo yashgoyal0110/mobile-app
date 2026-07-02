@@ -15,13 +15,13 @@ import { UsersModule } from './modules/users/users.module';
 import { FareConfigModule } from './modules/config/config.module';
 import { DriversModule } from './modules/drivers/drivers.module';
 import { RidesModule } from './modules/rides/rides.module';
-import { SuggestionsModule } from './modules/suggestions/suggestions.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { GeoModule } from './modules/geo/geo.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
 import { StaysModule } from './modules/stays/stays.module';
 import { TemplesModule } from './modules/temples/temples.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { PrasadModule } from './modules/prasad/prasad.module';
 
 @Module({
   imports: [
@@ -48,13 +48,13 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     FareConfigModule,
     DriversModule,
     RidesModule,
-    SuggestionsModule,
     AdminModule,
     GeoModule,
     RatingsModule,
     StaysModule,
     TemplesModule,
     UploadsModule,
+    PrasadModule,
   ],
   controllers: [AppController],
 })
