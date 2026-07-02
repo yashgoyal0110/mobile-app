@@ -200,9 +200,11 @@ export class StorageService {
       list.map(async (value) => {
         const key = this.keyFromValue(value);
         if (!key) {
-          throw new BadRequestException(
-            `Image must be uploaded through the app before saving: ${value}`,
-          );
+          // Not one of our bucket objects — e.g. an external / seed image URL
+          // (Wikimedia, a CDN, etc.). Trust it as-is; only bucket uploads are
+          // existence-verified. This lets admins keep/edit existing photos.
+          if (/^https?:\/\//i.test(value)) return value;
+          throw new BadRequestException(`Invalid image reference: ${value}`);
         }
         const meta = await this.statObject(key);
         if (!meta.exists) {
