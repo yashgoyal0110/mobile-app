@@ -86,10 +86,8 @@ export default function Splash() {
 
   return (
     <Pressable style={styles.bg} onPress={onPress} testID="splash-screen">
-      {/* warm horizon glow */}
-      <View style={styles.horizon} />
-
-      <View style={styles.center}>
+      {/* Top: brand scene, centered in the space above the shloka */}
+      <View style={styles.top}>
         <TText variant="caption" color={colors.primary} align="center" style={styles.kicker}>
           श्री गोवर्धन धाम · GOVARDHAN
         </TText>
@@ -142,31 +140,22 @@ export default function Splash() {
         </Animated.View>
       </View>
 
-      {/* Daily shloka */}
+      {/* Daily shloka — slim card */}
       <Animated.View
         style={[
           styles.shlokaCard,
-          { opacity: textIn, transform: [{ translateY: textIn.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] },
+          { opacity: textIn, transform: [{ translateY: textIn.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] },
         ]}
       >
-        <View style={styles.shlokaHead}>
-          <View style={styles.shlokaDot} />
-          <TText variant="caption" color={colors.primary} style={{ letterSpacing: 1.5 }}>
-            आज का श्लोक · SHLOKA OF THE DAY
-          </TText>
-        </View>
-        <TText align="center" color="#FFFFFF" style={styles.shlokaSa}>{shloka.sa}</TText>
-        <TText align="center" color={colors.darkMuted} style={styles.shlokaTr}>{shloka.tr}</TText>
-        <TText align="center" color="#E8E2D6" style={styles.shlokaEn}>“{shloka.en}”</TText>
-        <TText align="center" variant="caption" color={colors.parikrama} style={{ marginTop: 8 }}>
-          — {shloka.src}
+        <TText align="center" variant="caption" color={colors.primary} style={{ letterSpacing: 1.5, marginBottom: 8 }}>
+          आज का श्लोक · SHLOKA OF THE DAY
         </TText>
+        <TText align="center" color="#FFFFFF" style={styles.shlokaSa}>{shloka.sa}</TText>
+        <TText align="center" color="#D8D3C7" style={styles.shlokaEn}>“{shloka.en}” — {shloka.src}</TText>
       </Animated.View>
 
       <Animated.View style={[styles.footer, { opacity: textIn }]}>
-        <View style={styles.fDot} />
         <TText variant="caption" color={colors.darkMuted} style={{ letterSpacing: 2 }}>TAP TO BEGIN</TText>
-        <View style={styles.fDot} />
       </Animated.View>
     </Pressable>
   );
@@ -175,11 +164,10 @@ export default function Splash() {
 const CORE = 92;
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, backgroundColor: "#0B0C0E", alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.lg },
-  horizon: { position: "absolute", bottom: -120, width: 460, height: 460, borderRadius: 230, backgroundColor: colors.primary, opacity: 0.1 },
-  center: { alignItems: "center" },
+  bg: { flex: 1, backgroundColor: "#0B0C0E", paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.xl },
+  top: { flex: 1, alignItems: "center", justifyContent: "center" },
   kicker: { letterSpacing: 2, marginBottom: spacing.lg },
-  scene: { width: ROAD, height: ROAD, alignItems: "center", justifyContent: "center", marginBottom: spacing.xl },
+  scene: { width: ROAD, height: ROAD, alignItems: "center", justifyContent: "center", marginBottom: spacing.lg },
   halo: { position: "absolute", width: ROAD + 60, height: ROAD + 60, borderRadius: (ROAD + 60) / 2, backgroundColor: colors.primary },
   road: {
     position: "absolute",
@@ -226,22 +214,14 @@ const styles = StyleSheet.create({
   wordmark: { fontSize: 42, lineHeight: 48, fontWeight: "800", color: "#FFFFFF", letterSpacing: -1 },
   wordmarkAccent: { color: colors.primary },
   shlokaCard: {
-    position: "absolute",
-    bottom: 92,
-    left: spacing.lg,
-    right: spacing.lg,
     backgroundColor: "rgba(255,255,255,0.04)",
     borderWidth: 1,
-    borderColor: "rgba(242,107,31,0.22)",
+    borderColor: "rgba(242,107,31,0.2)",
     borderRadius: radius.lg,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
   },
-  shlokaHead: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
-  shlokaDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.primary, marginRight: 8 },
-  shlokaSa: { fontSize: 18, lineHeight: 28, fontWeight: "700" },
-  shlokaTr: { fontSize: 12, lineHeight: 16, fontStyle: "italic", marginTop: 6 },
-  shlokaEn: { fontSize: 13, lineHeight: 19, marginTop: 10 },
-  footer: { position: "absolute", bottom: 40, flexDirection: "row", alignItems: "center", gap: 10 },
-  fDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.darkMuted, opacity: 0.6 },
+  shlokaSa: { fontSize: 16, lineHeight: 24, fontWeight: "700" },
+  shlokaEn: { fontSize: 12, lineHeight: 18, marginTop: 8 },
+  footer: { alignItems: "center", marginTop: spacing.md },
 });

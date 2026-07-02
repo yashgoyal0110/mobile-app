@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Dimensions, Platform } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -7,10 +7,12 @@ import { LineChart, BarChart } from "react-native-chart-kit";
 import { TText } from "../../src/components/TText";
 import { Card } from "../../src/components/Card";
 import { api } from "../../src/api";
-import { colors, radius, spacing, shadows } from "../../src/theme";
+import { colors, radius, spacing } from "../../src/theme";
 
 const SCREEN_W = Dimensions.get("window").width;
-const CHART_W = Math.max(280, Math.min(SCREEN_W - 32, 480));
+// Chart must fit INSIDE the card: subtract the ScrollView padding (lg each side)
+// and the Card padding (md each side) so it never overflows horizontally.
+const CHART_W = Math.max(240, Math.min(SCREEN_W - 80, 900));
 
 const chartConfig = {
   backgroundColor: colors.surface,
@@ -131,7 +133,7 @@ export default function AdminDashboard() {
               chartConfig={chartConfig}
               showValuesOnTopOfBars={false}
               withInnerLines={false}
-              style={{ marginVertical: 8, borderRadius: radius.md, marginLeft: -16 }}
+              style={{ marginVertical: 8, borderRadius: radius.md, marginLeft: -8 }}
             />
           )}
         </Card>
@@ -154,7 +156,7 @@ export default function AdminDashboard() {
               chartConfig={revenueChartConfig}
               bezier
               withInnerLines={false}
-              style={{ marginVertical: 8, borderRadius: radius.md, marginLeft: -16 }}
+              style={{ marginVertical: 8, borderRadius: radius.md, marginLeft: -8 }}
             />
           )}
         </Card>

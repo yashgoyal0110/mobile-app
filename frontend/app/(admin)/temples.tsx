@@ -24,6 +24,7 @@ interface Form {
   darshan_slots: DarshanSlot[]; aarti_timings: AartiTiming[];
   crowd_level: CrowdLevel | null; verified: boolean; featured: boolean;
   photos: PhotoItem[];
+  prasad_items: { id?: string; name: string; price: string; description: string; available: boolean }[];
 }
 
 const EMPTY_FORM: Form = {
@@ -32,6 +33,7 @@ const EMPTY_FORM: Form = {
   darshan_slots: [{ label: "", open: "05:00", close: "12:00" }],
   aarti_timings: [], crowd_level: null, verified: true, featured: false,
   photos: [],
+  prasad_items: [],
 };
 
 export default function AdminTemples() {
@@ -74,6 +76,13 @@ export default function AdminTemples() {
       aarti_timings: (t.aarti_timings || []).map((a) => ({ name: a.name, time: a.time })),
       crowd_level: t.crowd_level || null, verified: !!t.verified, featured: !!t.featured,
       photos: photoItemsFromUrls(t.photos),
+      prasad_items: ((t as any).prasad_items || []).map((p: any) => ({
+        id: p.id,
+        name: p.name || "",
+        price: p.price != null ? String(p.price) : "",
+        description: p.description || "",
+        available: p.available !== false,
+      })),
     });
     setModalOpen(true);
   };
@@ -88,6 +97,12 @@ export default function AdminTemples() {
     setForm((f) => ({ ...f, aarti_timings: f.aarti_timings.map((a, idx) => idx === i ? { ...a, ...patch } : a) }));
   const addAarti = () => setForm((f) => ({ ...f, aarti_timings: [...f.aarti_timings, { name: "", time: "06:00" }] }));
   const delAarti = (i: number) => setForm((f) => ({ ...f, aarti_timings: f.aarti_timings.filter((_, idx) => idx !== i) }));
+
+  // --- prasad item helpers ---
+  const setPrasad = (i: number, patch: Partial<Form["prasad_items"][number]>) =>
+    setForm((f) => ({ ...f, prasad_items: f.prasad_items.map((p, idx) => idx === i ? { ...p, ...patch } : p) }));
+  const addPrasad = () => setForm((f) => ({ ...f, prasad_items: [...f.prasad_items, { name: "", price: "", description: "", available: true }] }));
+  const delPrasad = (i: number) => setForm((f) => ({ ...f, prasad_items: f.prasad_items.filter((_, idx) => idx !== i) }));
 
   const HHMM = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
@@ -118,6 +133,9 @@ export default function AdminTemples() {
       special_note: form.special_note.trim() || null,
       darshan_slots: slots.map((s) => ({ label: s.label?.trim() || null, open: s.open, close: s.close })),
       aarti_timings: aartis.map((a) => ({ name: a.name.trim(), time: a.time })),
+      prasad_items: form.prasad_items
+        .filter((p) => p.name.trim() && p.price !== "" && Number(p.price) >= 0)
+        .map((p) => ({ id: p.id, name: p.name.trim(), price: Number(p.price), description: p.description.trim() || null, available: p.available })),
       crowd_level: form.crowd_level, verified: form.verified, featured: form.featured,
     };
     setSaving(true);
@@ -300,6 +318,49 @@ export default function AdminTemples() {
                 </View>
               ))}
 
+              {/* Prasad items */}
+              <View style={styles.sectionHead}>
+                <TText variant="label">PRASAD ITEMS (for ordering)</TText>
+                <TouchableOpacity onPress={addPrasad} style={styles.addBtn} testID="temple-add-prasad">
+                  <Feather name="plus" size={14} color={colors.primaryDark} />
+                  <TText variant="caption" color={colors.primaryDark} style={{ marginLeft: 4 }}>Add item</TText>
+                </TouchableOpacity>
+              </View>
+              {form.prasad_items.length === 0 && (
+                <TText variant="caption" muted style={{ marginBottom: 8 }}>No prasad items. Add items pilgrims can order & pay for.</TText>
+              )}
+              {form.prasad_items.map((p, i) => (
+                <View key={i} style={styles.prasadEdit}>
+                  <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                    <TextInput
+                      value={p.name}
+                      onChangeText={(v) => setPrasad(i, { name: v })}
+                      placeholder="Laddu Prasad"
+                      placeholderTextColor={colors.textMuted}
+                      style={[styles.labelField, { flex: 2 }]}
+                    />
+                    <TextInput
+                      value={p.price}
+                      onChangeText={(v) => setPrasad(i, { price: v.replace(/[^0-9]/g, "") })}
+                      placeholder="₹ price"
+                      keyboardType="numeric"
+                      placeholderTextColor={colors.textMuted}
+                      style={[styles.labelField, { width: 84 }]}
+                    />
+                    <TouchableOpacity onPress={() => delPrasad(i)} style={styles.delBtn}>
+                      <Feather name="x" size={16} color={colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                  <TextInput
+                    value={p.description}
+                    onChangeText={(v) => setPrasad(i, { description: v })}
+                    placeholder="Short description (optional)"
+                    placeholderTextColor={colors.textMuted}
+                    style={[styles.labelField, { marginTop: 8 }]}
+                  />
+                </View>
+              ))}
+
               {/* Crowd level */}
               <TText variant="label" style={{ marginTop: spacing.md, marginBottom: 8 }}>CROWD LEVEL (optional)</TText>
               <View style={styles.chipWrap}>
@@ -391,6 +452,7 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.md, marginBottom: spacing.sm },
   addBtn: { flexDirection: "row", alignItems: "center", backgroundColor: colors.primaryLight, paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill },
   slotEditRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+  prasadEdit: { marginBottom: 12, padding: 10, borderRadius: radius.md, backgroundColor: colors.bgAlt },
   timeField: {
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,
     paddingHorizontal: 10, paddingVertical: 10, fontSize: 14, color: colors.text, width: 64, textAlign: "center",

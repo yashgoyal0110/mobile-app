@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { Image } from "expo-image";
 import { TText } from "../../src/components/TText";
 import { Card } from "../../src/components/Card";
 import { ImageCarousel } from "../../src/components/ImageCarousel";
@@ -19,6 +20,8 @@ export default function TempleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [temple, setTemple] = useState<Temple | null>(null);
   const [loading, setLoading] = useState(true);
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [ordering, setOrdering] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +57,29 @@ export default function TempleDetail() {
     Linking.openURL(`tel:${temple.contact_phone}`).catch(() => notify("Could not open dialer"));
   };
 
+  const setItemQty = (itemId: string, delta: number) =>
+    setQty((q) => {
+      const next = Math.max(0, (q[itemId] || 0) + delta);
+      return { ...q, [itemId]: next };
+    });
+
+  const placeOrder = async () => {
+    const items = Object.entries(qty)
+      .filter(([, q]) => q > 0)
+      .map(([item_id, q]) => ({ item_id, qty: q }));
+    if (items.length === 0) return;
+    setOrdering(true);
+    try {
+      const order = await api<any>("/prasad/orders", { method: "POST", body: { temple_id: id, items } });
+      setQty({});
+      notify("Prasad ordered 🙏", `Payment successful (test). Total ₹${order.total}. It will be arranged at ${temple?.name}.`);
+    } catch (e: any) {
+      notify("Order failed", e?.message);
+    } finally {
+      setOrdering(false);
+    }
+  };
+
   if (loading) {
     return <SafeAreaView style={styles.safe}><View style={styles.center}><ActivityIndicator color={colors.primary} /></View></SafeAreaView>;
   }
@@ -70,6 +96,8 @@ export default function TempleDetail() {
   const crowd = temple.crowd_level ? CROWD_META[temple.crowd_level] : null;
   const slots = temple.darshan_slots || [];
   const aartis = temple.aarti_timings || [];
+  const prasad = ((temple as any).prasad_items || []).filter((p: any) => p && p.available !== false);
+  const prasadTotal = prasad.reduce((s: number, p: any) => s + Number(p.price) * (qty[p.id] || 0), 0);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]} testID="passenger-temple-detail">
@@ -115,6 +143,50 @@ export default function TempleDetail() {
           <Card style={{ marginTop: spacing.lg }}>
             <TText variant="body">{temple.description}</TText>
           </Card>
+        )}
+
+        {/* Prasad ordering */}
+        {prasad.length > 0 && (
+          <>
+            <SectionTitle icon="gift" title="Order Prasad" />
+            <Card flat style={{ gap: 0 }}>
+              {prasad.map((p: any, i: number) => (
+                <View key={p.id} style={[styles.prasadRow, i > 0 && styles.divider]}>
+                  {p.image ? (
+                    <Image source={{ uri: p.image }} style={styles.prasadThumb} contentFit="cover" />
+                  ) : null}
+                  <View style={{ flex: 1, marginRight: spacing.md, marginLeft: p.image ? spacing.md : 0 }}>
+                    <TText variant="body" weight="700">{p.name}</TText>
+                    {!!p.description && <TText variant="caption" muted numberOfLines={2}>{p.description}</TText>}
+                    <TText variant="bodySm" weight="700" color={colors.primaryDark} style={{ marginTop: 2 }}>₹{p.price}</TText>
+                  </View>
+                  <View style={styles.stepper}>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => setItemQty(p.id, -1)} testID={`prasad-dec-${p.id}`}>
+                      <Feather name="minus" size={14} color={colors.text} />
+                    </TouchableOpacity>
+                    <TText variant="body" weight="700" style={{ minWidth: 20, textAlign: "center" }}>{qty[p.id] || 0}</TText>
+                    <TouchableOpacity style={[styles.stepBtn, styles.stepAdd]} onPress={() => setItemQty(p.id, 1)} testID={`prasad-inc-${p.id}`}>
+                      <Feather name="plus" size={14} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </Card>
+            {prasadTotal > 0 && (
+              <View style={styles.prasadPay}>
+                <View>
+                  <TText variant="caption" muted>TOTAL · TEST PAYMENT</TText>
+                  <TText variant="h3">₹{prasadTotal}</TText>
+                </View>
+                <TouchableOpacity style={styles.payBtn} onPress={placeOrder} disabled={ordering} activeOpacity={0.85} testID="prasad-pay">
+                  <Feather name="shopping-bag" size={16} color="#fff" />
+                  <TText variant="body" weight="700" color="#fff" style={{ marginLeft: 8 }}>
+                    {ordering ? "Placing…" : `Pay ₹${prasadTotal}`}
+                  </TText>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
 
         {/* Darshan timings */}
@@ -235,6 +307,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 8, minWidth: "30%",
   },
   inlineLink: { flexDirection: "row", alignItems: "center", marginTop: spacing.md },
+  prasadRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12 },
+  prasadThumb: { width: 52, height: 52, borderRadius: radius.md, backgroundColor: colors.bgAlt },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 10 },
+  stepBtn: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: colors.bgAlt, borderWidth: 1, borderColor: colors.border },
+  stepAdd: { backgroundColor: colors.primary, borderColor: colors.primary },
+  prasadPay: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    marginTop: spacing.md, padding: spacing.md,
+    backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, ...shadows.sm,
+  },
+  payBtn: { flexDirection: "row", alignItems: "center", backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: 12, borderRadius: radius.pill },
   actionBar: {
     position: "absolute", bottom: 0, left: 0, right: 0,
     flexDirection: "row", gap: 10, padding: spacing.md, paddingBottom: spacing.lg,
