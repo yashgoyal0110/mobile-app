@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://REPLACE-WITH-YOUR-CLOUD-RUN-URL.a.run.app"
+        "EXPO_PUBLIC_BACKEND_URL": "https://34.143.253.125.nip.io"
       }
     },
     "production": {
@@ -23,7 +23,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://REPLACE-WITH-YOUR-CLOUD-RUN-URL.a.run.app"
+        "EXPO_PUBLIC_BACKEND_URL": "https://34.143.253.125.nip.io"
       }
     }
   },

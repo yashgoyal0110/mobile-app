@@ -1,8 +1,9 @@
-# FifthDigit backend — runs just the NestJS API, backed by a hosted MongoDB Atlas
-# cluster (no local database container).
+# FifthDigit backend — NestJS API, backed by hosted MongoDB Atlas.
 #
-# The API is reachable from the outside world on :3002. The Atlas connection
-# string and secrets come from the .env file next to this compose file.
+# HTTPS is handled by your EXISTING reverse proxy on the VM (which already owns
+# ports 80/443 for your other apps). This service just publishes the API on the
+# host at 127.0.0.1:3002; add a vhost/route on your proxy that forwards a
+# hostname to http://127.0.0.1:3002. See Caddyfile / README for the snippet.
 #
 # Quick start on the VM:
 #   cp .env.example .env
@@ -17,9 +18,11 @@ services:
     image: fifthdigit-backend:latest
     container_name: fifthdigit-api
     restart: unless-stopped
-    # Host 3002  ->  container 3002 (outer world hits :3002)
+    # Publish on the host loopback only — your existing reverse proxy forwards
+    # to 127.0.0.1:3002. (Use "3002:3002" instead if you want it reachable
+    # directly from outside during testing.)
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     # MONGO_URL, DB_NAME, JWT_SECRET, ADMIN_PHONES, MOCK_OTP, GEO_*, GCS_* are
     # read from .env (copy from .env.example). PORT is pinned here.
     env_file:
