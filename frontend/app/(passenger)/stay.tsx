@@ -6,9 +6,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import { Image } from "expo-image";
 import { TText } from "../../src/components/TText";
 import { Card } from "../../src/components/Card";
+import { ImageCarousel } from "../../src/components/ImageCarousel";
 import { api } from "../../src/api";
 import { notify } from "../../src/utils/dialog";
 import { colors, radius, spacing, shadows } from "../../src/theme";
@@ -90,20 +90,15 @@ export default function StayDetail() {
     <SafeAreaView style={styles.safe} edges={["top"]} testID="passenger-stay-detail">
       <Header onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero image / placeholder */}
-        <View style={styles.hero}>
-          {stay.photos && stay.photos.length > 0 ? (
-            <Image source={{ uri: stay.photos[0] }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          ) : (
-            <Feather name="home" size={48} color={colors.primaryDark} />
-          )}
+        {/* Photo gallery (swipeable) */}
+        <ImageCarousel photos={stay.photos} height={200} fallbackIcon="home">
           {stay.featured && (
             <View style={styles.featuredBadge}>
               <Feather name="star" size={11} color="#fff" />
               <TText variant="caption" color="#fff" style={{ marginLeft: 4 }}>FEATURED</TText>
             </View>
           )}
-        </View>
+        </ImageCarousel>
 
         {/* Title block */}
         <View style={{ flexDirection: "row", alignItems: "flex-start", marginTop: spacing.lg }}>
@@ -237,10 +232,6 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   scroll: { padding: spacing.lg },
-  hero: {
-    height: 180, borderRadius: radius.lg, backgroundColor: colors.primaryLight,
-    alignItems: "center", justifyContent: "center", overflow: "hidden",
-  },
   featuredBadge: {
     position: "absolute", top: 12, left: 12, flexDirection: "row", alignItems: "center",
     backgroundColor: colors.primaryDark, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill,

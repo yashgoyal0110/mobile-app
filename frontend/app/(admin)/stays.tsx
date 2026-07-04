@@ -9,10 +9,12 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { TText } from "../../src/components/TText";
 import { TInput } from "../../src/components/TInput";
 import { TButton } from "../../src/components/TButton";
+import { ImagePickerField } from "../../src/components/ImagePickerField";
 import { api } from "../../src/api";
 import { notify, confirmDialog } from "../../src/utils/dialog";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 import { Stay, STAY_TYPES, AMENITIES, stayTypeLabel, priceLabel } from "../../src/stays";
+import { PhotoItem, photoItemsFromUrls, resolvePhotos } from "../../src/uploads";
 
 type Filter = "all" | "pending" | "verified";
 
@@ -22,6 +24,7 @@ const EMPTY_FORM = {
   price_min: "", price_max: "", donation_based: false,
   capacity: "", room_types: "", amenities: [] as string[],
   verified: true, available: true, featured: false,
+  photos: [] as PhotoItem[],
 };
 
 export default function AdminStays() {
@@ -69,6 +72,7 @@ export default function AdminStays() {
       room_types: (s.room_types || []).join(", "),
       amenities: s.amenities || [],
       verified: !!s.verified, available: s.available !== false, featured: !!s.featured,
+      photos: photoItemsFromUrls(s.photos),
     });
     setModalOpen(true);
   };
@@ -79,6 +83,10 @@ export default function AdminStays() {
   const save = async () => {
     if (!form.name.trim() || !form.address.trim() || !form.contact_phone.trim()) {
       notify("Missing fields", "Name, address and contact phone are required.");
+      return;
+    }
+    if (form.photos.length === 0) {
+      notify("Add a photo", "Please add at least one photo of the stay.");
       return;
     }
     const payload: any = {
@@ -101,6 +109,8 @@ export default function AdminStays() {
     };
     setSaving(true);
     try {
+      // Upload any newly-picked images first; abort the save if upload fails.
+      payload.photos = await resolvePhotos(form.photos, "stay", 1);
       if (editingId) await api(`/admin/stays/${editingId}`, { method: "PATCH", body: payload });
       else await api("/admin/stays", { method: "POST", body: payload });
       setModalOpen(false);
@@ -214,6 +224,16 @@ export default function AdminStays() {
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}>
               <TInput label="Name *" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} placeholder="Shri Giriraj Dharamshala" testID="stay-form-name" />
+
+              <ImagePickerField
+                label="Photos"
+                required
+                value={form.photos}
+                onChange={(photos) => setForm({ ...form, photos })}
+                max={6}
+                hint="Add at least 1 photo. First photo is the cover."
+                testID="stay-form-photos"
+              />
 
               <TText variant="bodySm" muted style={{ marginBottom: 6 }}>Type</TText>
               <View style={styles.chipWrap}>

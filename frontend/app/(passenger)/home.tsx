@@ -143,9 +143,9 @@ export default function PassengerHome() {
         {/* Popular parikrama */}
         <SectionHeader title="Popular Parikrama" actionLabel="All rides" onAction={() => router.push("/(passenger)/ride")} testID="sec-parikrama" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
-          <ParikramaCard title="Poochari" km={12} price={config?.poochari_fare} tint={colors.primaryDark} bg={colors.primaryLight} onPress={() => ride("poochari")} testID="pk-poochari" />
-          <ParikramaCard title="Radhakund" km={7} price={config?.radhakund_fare} tint={colors.success} bg={colors.successBg} onPress={() => ride("radhakund")} testID="pk-radhakund" />
-          <ParikramaCard title="Combined" km={21} price={config?.combined_fare} tint={colors.parikrama} bg="#FFF3DC" onPress={() => ride("combined")} testID="pk-combined" />
+          <ParikramaCard title="Poochari" km={12} price={config?.poochari_fare} image={config?.poochari_image} tint={colors.primaryDark} bg={colors.primaryLight} onPress={() => ride("poochari")} testID="pk-poochari" />
+          <ParikramaCard title="Radhakund" km={7} price={config?.radhakund_fare} image={config?.radhakund_image} tint={colors.success} bg={colors.successBg} onPress={() => ride("radhakund")} testID="pk-radhakund" />
+          <ParikramaCard title="Combined" km={21} price={config?.combined_fare} image={config?.combined_image} tint={colors.parikrama} bg="#FFF3DC" onPress={() => ride("combined")} testID="pk-combined" />
         </ScrollView>
 
         {/* Temples */}
@@ -220,18 +220,28 @@ function SectionHeader({ title, actionLabel, onAction, testID }: any) {
   );
 }
 
-function ParikramaCard({ title, km, price, tint, bg, onPress, testID }: any) {
+function ParikramaCard({ title, km, price, image, tint, bg, onPress, testID }: any) {
   return (
-    <TouchableOpacity style={[styles.pkCard, { backgroundColor: bg }]} onPress={onPress} activeOpacity={0.85} testID={testID}>
-      <View style={[styles.pkIcon, { backgroundColor: "#FFFFFF90" }]}>
-        <Feather name="compass" size={20} color={tint} />
+    <TouchableOpacity style={styles.pkCard} onPress={onPress} activeOpacity={0.85} testID={testID}>
+      {/* Image banner (falls back to a branded tinted banner when no photo set) */}
+      <View style={[styles.pkBanner, { backgroundColor: bg }]}>
+        {image ? (
+          <Image source={{ uri: image }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        ) : (
+          <Feather name="compass" size={30} color={tint} />
+        )}
+        <View style={styles.pkKmChip}>
+          <Feather name="map-pin" size={10} color="#fff" />
+          <TText variant="caption" color="#fff" style={{ marginLeft: 4 }}>{km} km</TText>
+        </View>
       </View>
-      <TText variant="bodyLg" weight="700" style={{ marginTop: spacing.md }}>{title}</TText>
-      <TText variant="caption" muted style={{ marginTop: 2 }}>{km} km route</TText>
-      <View style={styles.pkPrice}>
-        <TText variant="h3" color={tint}>₹{price ?? "—"}</TText>
-        <View style={[styles.pkGo, { backgroundColor: tint }]}>
-          <Feather name="arrow-right" size={14} color="#fff" />
+      <View style={{ padding: spacing.md }}>
+        <TText variant="bodyLg" weight="700" numberOfLines={1}>{title}</TText>
+        <View style={styles.pkPrice}>
+          <TText variant="h3" color={tint}>₹{price ?? "—"}</TText>
+          <View style={[styles.pkGo, { backgroundColor: tint }]}>
+            <Feather name="arrow-right" size={14} color="#fff" />
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -299,9 +309,10 @@ const styles = StyleSheet.create({
   promoEmoji: { fontSize: 52, lineHeight: 60, marginLeft: 8 },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.md },
   rail: { paddingHorizontal: spacing.lg, gap: 12 },
-  pkCard: { width: 150, borderRadius: radius.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
-  pkIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  pkPrice: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.md },
+  pkCard: { width: 160, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, overflow: "hidden", backgroundColor: colors.surface },
+  pkBanner: { height: 96, alignItems: "center", justifyContent: "center", position: "relative" },
+  pkKmChip: { position: "absolute", left: 8, bottom: 8, flexDirection: "row", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
+  pkPrice: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: spacing.sm },
   pkGo: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   discCard: { width: 170 },
   discImage: {

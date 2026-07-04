@@ -1,0 +1,38 @@
+# FifthDigit backend — NestJS API, backed by hosted MongoDB Atlas.
+#
+# HTTPS is handled by your EXISTING reverse proxy on the VM (which already owns
+# ports 80/443 for your other apps). This service just publishes the API on the
+# host at 127.0.0.1:3002; add a vhost/route on your proxy that forwards a
+# hostname to http://127.0.0.1:3002. See Caddyfile / README for the snippet.
+#
+# Quick start on the VM:
+#   cp .env.example .env
+#   nano .env              # set MONGO_URL (Atlas srv URI), JWT_SECRET, ADMIN_PHONES
+#   docker compose up -d --build
+#
+# See README.md → "Deploy / redeploy on a VM" for the full flow.
+
+services:
+  api:
+    build: .
+    image: fifthdigit-backend:latest
+    container_name: fifthdigit-api
+    restart: unless-stopped
+    # Publish on the host loopback only — your existing reverse proxy forwards
+    # to 127.0.0.1:3002. (Use "3002:3002" instead if you want it reachable
+    # directly from outside during testing.)
+    ports:
+      - "127.0.0.1:3002:3002"
+    # MONGO_URL, DB_NAME, JWT_SECRET, ADMIN_PHONES, MOCK_OTP, GEO_*, GCS_* are
+    # read from .env (copy from .env.example). PORT is pinned here.
+    env_file:
+      - .env
+    # Mount the GCP service-account key into the container (it is NOT baked into
+    # the image). The key must exist on the VM at the path below before
+    # `docker compose up`. Remove this block if you're not using image uploads.
+    volumes:
+      - ./astral-hold-499011-g6-45c2aa6a230e.json:/secrets/gcs-key.json:ro
+    environment:
+      PORT: 3002
+      # Points the GCS client at the mounted key (overrides any value in .env).
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcs-key.json

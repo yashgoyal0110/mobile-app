@@ -8,14 +8,13 @@ import { TButton } from "../../src/components/TButton";
 import { Card } from "../../src/components/Card";
 import { api } from "../../src/api";
 import { useAuth } from "../../src/auth";
-import { notify, confirmDialog } from "../../src/utils/dialog";
+import { notify } from "../../src/utils/dialog";
 import { colors, radius, spacing } from "../../src/theme";
 
 export default function AdminProfile() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -23,8 +22,6 @@ export default function AdminProfile() {
     try {
       const w = await api<{ withdrawals: any[] }>("/admin/withdrawals");
       setWithdrawals(w.withdrawals || []);
-      const s = await api<{ suggestions: any[] }>("/suggestions");
-      setSuggestions(s.suggestions || []);
     } catch {}
   }, []);
 
@@ -37,23 +34,6 @@ export default function AdminProfile() {
     } catch (e: any) {
       notify("Failed", e.message);
     }
-  };
-
-  const applySuggestion = (id: string) => {
-    confirmDialog(
-      "Apply this fare suggestion?",
-      "It will become the new active fare",
-      async () => {
-        try {
-          await api(`/admin/suggestions/${id}/apply`, { method: "POST" });
-          notify("Applied");
-          load();
-        } catch (e: any) {
-          notify("Failed", e.message);
-        }
-      },
-      { confirmLabel: "Apply" }
-    );
   };
 
   const logout = async () => {
@@ -102,30 +82,6 @@ export default function AdminProfile() {
                 ) : (
                   <TButton label="Mark paid" small fullWidth={false} onPress={() => markPaid(w.id)} testID={`mark-paid-${w.id}`} />
                 )}
-              </View>
-            </Card>
-          ))
-        )}
-
-        <TText variant="h3" style={{ marginTop: spacing.xl, marginBottom: spacing.md }}>Fare suggestions</TText>
-        {suggestions.length === 0 ? (
-          <Card flat style={{ alignItems: "center", paddingVertical: spacing.lg }}>
-            <TText variant="bodySm" muted>No active suggestions</TText>
-          </Card>
-        ) : (
-          suggestions.map((s) => (
-            <Card key={s.id} style={{ marginBottom: spacing.md }} testID={`admin-suggestion-${s.id}`}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <View style={{ flex: 1 }}>
-                  <TText variant="caption" muted>{s.ride_type}</TText>
-                  <TText variant="bodyLg" weight="700" style={{ marginTop: 2 }}>₹{s.amount}</TText>
-                  <TText variant="bodySm" muted>By {s.driver_name}</TText>
-                  <View style={{ flexDirection: "row", marginTop: 6, gap: 12 }}>
-                    <TText variant="caption" color={colors.success}>↑ {s.votes_up} up</TText>
-                    <TText variant="caption" color={colors.error}>↓ {s.votes_down} down</TText>
-                  </View>
-                </View>
-                <TButton label="Apply" small fullWidth={false} onPress={() => applySuggestion(s.id)} testID={`apply-suggestion-${s.id}`} />
               </View>
             </Card>
           ))
